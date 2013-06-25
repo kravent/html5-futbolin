@@ -10,9 +10,9 @@ var player=new Circle(50,50,10);
 var pelota=new Circle(100,100,5);
 
 
-requestAnimationFrame = requestAnimationFrame || mozRequestAnimationFrame || webkitmozRequestAnimationFrame;
+window.requestAnimationFrame = requestAnimationFrame || mozRequestAnimationFrame || webkitmozRequestAnimationFrame;
 
-var ws = new WebSocket('ws://agaman.me:8090/room?width='+canvas.width+'&hight='+canvas.hight);
+var ws = new WebSocket('ws://localhost:8090/room?width='+canvas.width+'&height='+canvas.height);
 ws.onmessage = function(msg){
 	var data = JSON.parse(msg.data);
 	player.x = data.player.x;
@@ -22,7 +22,7 @@ ws.onmessage = function(msg){
 }
 ws.onclose = function(data){console.log(data);}
 
-ws.onconnect = function() {console.log("Conexion establecida");
+ws.onopen = function() {console.log("Conexion establecida");
 	document.addEventListener('keydown',function(evt){
 		lastKey=evt.keyCode;
 		if(!PRESSING[lastKey]){
