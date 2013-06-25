@@ -48,8 +48,8 @@ EventMachine::run do
 				for eje,maxeje in [[:x,width],[:y,height]]
 					puts "eje y: #{pos[:player][:y]} #{vel[:player][:y]}    maxeje: #{maxeje}" if eje == :y
 					pos[:player][eje] += vel[:player][eje]
-					pos[:player][eje] = RADIO_PLAYER if pos[:player][eje] < RADIO_PLAYER
-					pos[:player][eje] = maxeje-RADIO_PLAYER if pos[:player][eje] > maxeje-RADIO_PLAYER
+					pos[:player][eje], vel[:player][eje] = RADIO_PLAYER, 0 if pos[:player][eje] < RADIO_PLAYER
+					pos[:player][eje], vel[:player][eje] = maxeje-RADIO_PLAYER, 0 if pos[:player][eje] > maxeje-RADIO_PLAYER
 				end
 				
 				connection.send JSON.generate(pos)
