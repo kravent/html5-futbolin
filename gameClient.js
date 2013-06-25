@@ -81,14 +81,15 @@ requestAnimationFrame(paint);
 },false);*/
 
 document.addEventListener('keydown',function(evt){
-	//lastKey=evt.keyCode;
-	//PRESSING[evt.keyCode]=true;
 	lastKey=evt.keyCode;
-	ws.send(lastKey+' 1');
+	if(PRESSING[lastKey] == false){
+		PRESSING[evt.keyCode]=true;
+		ws.send(lastKey+' 1');
+	}
 },false);
 
 document.addEventListener('keyup',function(evt){
-	//PRESSING[evt.keyCode]=false;
+	PRESSING[evt.keyCode]=false;
 	ws.send(evt.keyCode+' 0');
 },false);
 
