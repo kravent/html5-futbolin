@@ -2,7 +2,7 @@
 require 'em-websocket'
 require 'json'
 
-REFRESH_TIME = 0.1
+REFRESH_TIME = 0.05
 ACELERACION = 2
 
 RADIO_PLAYER = 10

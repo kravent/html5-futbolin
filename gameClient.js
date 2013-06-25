@@ -5,7 +5,7 @@ var ctx=canvas.getContext('2d');
 
 //var mousex=0,mousey=0;
 var lastKey=null;
-//var PRESSING=[];
+var PRESSING=[];
 var player=new Circle(50,50,10);
 var pelota=new Circle(100,100,5);
 
@@ -82,7 +82,7 @@ requestAnimationFrame(paint);
 
 document.addEventListener('keydown',function(evt){
 	lastKey=evt.keyCode;
-	if(PRESSING[lastKey] == false){
+	if(!PRESSING[lastKey]){
 		PRESSING[evt.keyCode]=true;
 		ws.send(lastKey+' 1');
 	}
