@@ -4,8 +4,9 @@ require 'json'
 
 PORT = 8090
 REFRESH_TIME = 0.05
-ACELERACION = 0.5
-MAX_VEL = 6
+ACELERACION = 0.8
+ACELERACION2 = 0.2
+MAX_VEL = 5
 WIDTH,HEIGHT = 600,300
 
 RADIO_PLAYER = 10
@@ -84,23 +85,29 @@ EventMachine::run do
 			ipos, ivelReal, ivel, iapr = $pos[:player][i], $velReal[:player][i], $vel[:player][i], $apretada[i]
 			
 			for eje,t1,t2 in [[:x,37,39],[:y,38,40]]
-				if iapr[t1] and not iapr[t2]
-					ivelReal[eje] -= ACELERACION #if ivelReal[eje]
-					ivelReal[eje] = -MAX_VEL if ivelReal[eje] < -MAX_VEL
-					if ivelReal[eje] > 0
+				if iapr[t1] and not iapr[t2]	# izquierda o arriba
+					if ivelReal[eje] < -MAX_VEL/2	# aceleración en movimiento
+						ivelReal[eje] -= ACELERACION2 #if ivelReal[eje]
+						ivelReal[eje] = -MAX_VEL if ivelReal[eje] < -MAX_VEL
+					elsif ivelReal[eje] >= -MAX_VEL/2 and ivelReal[eje] <= 0	# aceleración inicial
+						ivelReal[eje] -= ACELERACION #if ivelReal[eje]
+					elsif ivelReal[eje] > 0	# desacelerar (se quiere ir al sentido contrario)
 						ivelReal[eje] -= ACELERACION*2
 					end
-				elsif not iapr[t1] and iapr[t2]
-					ivelReal[eje] += ACELERACION #if ivelReal[eje]
-					ivelReal[eje] = MAX_VEL if ivelReal[eje] > MAX_VEL
-					if ivelReal[eje] < 0
+				elsif not iapr[t1] and iapr[t2]		# derecha o abajo
+					if ivelReal[eje] > MAX_VEL/2	# aceleración en movimiento
+						ivelReal[eje] += ACELERACION2 #if ivelReal[eje]
+						ivelReal[eje] = MAX_VEL if ivelReal[eje] > MAX_VEL
+					elsif ivelReal[eje] <= MAX_VEL/2 and ivelReal[eje] >= 0	# aceleración inicial
+						ivelReal[eje] += ACELERACION
+					elsif ivelReal[eje] < 0	# desacelerar (se quiere ir al sentido contrario)
 						ivelReal[eje] += ACELERACION*2
 					end
-				elsif ivelReal[eje] > 0
-					ivelReal[eje] -= ACELERACION
+				elsif ivelReal[eje] > 0		# no se va a ninguna dirección y se desacelera despacio
+					ivelReal[eje] -= ACELERACION2
 					ivelReal[eje] = 0 if ivelReal[eje] < 0
 				elsif ivelReal[eje] < 0
-					ivelReal[eje] += ACELERACION
+					ivelReal[eje] += ACELERACION2
 					ivelReal[eje] = 0 if ivelReal[eje] > 0
 				end
 			end
