@@ -15,8 +15,23 @@ def distancia obj1, obj2
 	Math.sqrt((obj1[:x]-obj2[:x])**2 + (obj1[:y]-obj2[:y])**2)
 end
 
+def modulo velx, vely
+	print "Modulo -> velx: ", velx, ", vely: ", vely, "\n"
+	if velx == 0 and vely == 0
+		return 0,0
+	elsif velx == 0 and vely != 0
+		return 0,vely
+	elsif vely == 0 and velx != 0
+		return velx,0
+	else
+		m = Math.sqrt(velx**2+vely**2)
+		return velx*(velx/m).abs, vely*(vely/m).abs
+	end
+end
+
 $pos = { player: [], pelota: { x: 60, y: 60 } }
 $vel = { player: [], pelota: { x: 0, y: 0 } }
+$velReal = { player: [], pelota: { x: 0, y: 0 } }
 $apretada = []
 $njugadores = 0
 $timer = nil
@@ -30,6 +45,7 @@ EventMachine::run do
 	EventMachine::WebSocket.run(:host => "0.0.0.0", :port => PORT) do |connection|
 		cpos = { x: 20, y: 20 }
 		cvel = { x: 0, y: 0 }
+		cvelReal = { x: 0, y: 0 }
 		capr = {}
 		
 		connection.onopen do |handshake| puts "Cliente conectado! :D"
@@ -38,6 +54,7 @@ EventMachine::run do
 			# TODO  no superponer a otro jugador del campo la posición inicial
 			$pos[:player] << cpos
 			$vel[:player] << cvel
+			$velReal[:player] << cvelReal
 			$apretada << capr
 		end
 		
@@ -54,6 +71,7 @@ EventMachine::run do
 			end
 			$pos[:player].delete_at i
 			$vel[:player].delete_at i
+			$velReal[:player].delete_at i
 			$apretada.delete_at i
 			$njugadores -= 1
 		end
@@ -63,28 +81,31 @@ EventMachine::run do
 	$timer = EventMachine::PeriodicTimer.new(REFRESH_TIME) do
 		
 		$njugadores.times do |i|
-			ipos, ivel, iapr = $pos[:player][i], $vel[:player][i], $apretada[i]
+			ipos, ivelReal, ivel, iapr = $pos[:player][i], $velReal[:player][i], $vel[:player][i], $apretada[i]
 			
 			for eje,t1,t2 in [[:x,37,39],[:y,38,40]]
 				if iapr[t1] and not iapr[t2]
-					ivel[eje] -= ACELERACION if ivel[eje]
-					ivel[eje] = -MAX_VEL if ivel[eje] < -MAX_VEL
+					ivelReal[eje] -= ACELERACION if ivelReal[eje]
+					ivelReal[eje] = -MAX_VEL if ivelReal[eje] < -MAX_VEL
 				elsif not iapr[t1] and iapr[t2]
-					ivel[eje] += ACELERACION if ivel[eje]
-					ivel[eje] = MAX_VEL if ivel[eje] > MAX_VEL
-				elsif ivel[eje] > 0
-					ivel[eje] -= ACELERACION
-					ivel[eje] = 0 if ivel[eje] < 0
-				elsif ivel[eje] < 0
-					ivel[eje] += ACELERACION
-					ivel[eje] = 0 if ivel[eje] > 0
+					ivelReal[eje] += ACELERACION if ivelReal[eje]
+					ivelReal[eje] = MAX_VEL if ivelReal[eje] > MAX_VEL
+				elsif ivelReal[eje] > 0
+					ivelReal[eje] -= ACELERACION
+					ivelReal[eje] = 0 if ivelReal[eje] < 0
+				elsif ivelReal[eje] < 0
+					ivelReal[eje] += ACELERACION
+					ivelReal[eje] = 0 if ivelReal[eje] > 0
 				end
 			end
 			
+			ivel[:x], ivel[:y] = modulo(ivelReal[:x], ivelReal[:y])
+			p ivel, ivelReal
+			
 			for eje,maxeje in [[:x,WIDTH],[:y,HEIGHT]]
 				ipos[eje] += ivel[eje]
-				ipos[eje], ivel[eje] = RADIO_PLAYER, 0 if ipos[eje] < RADIO_PLAYER
-				ipos[eje], ivel[eje] = maxeje-RADIO_PLAYER, 0 if ipos[eje] > maxeje-RADIO_PLAYER
+				ipos[eje], ivelReal[eje] = RADIO_PLAYER, 0 if ipos[eje] < RADIO_PLAYER
+				ipos[eje], ivelReal[eje] = maxeje-RADIO_PLAYER, 0 if ipos[eje] > maxeje-RADIO_PLAYER
 			end
 			
 		end
