@@ -85,11 +85,17 @@ EventMachine::run do
 			
 			for eje,t1,t2 in [[:x,37,39],[:y,38,40]]
 				if iapr[t1] and not iapr[t2]
-					ivelReal[eje] -= ACELERACION if ivelReal[eje]
+					ivelReal[eje] -= ACELERACION #if ivelReal[eje]
 					ivelReal[eje] = -MAX_VEL if ivelReal[eje] < -MAX_VEL
+					if ivelReal[eje] > 0
+						ivelReal[eje] -= ACELERACION*2
+					end
 				elsif not iapr[t1] and iapr[t2]
-					ivelReal[eje] += ACELERACION if ivelReal[eje]
+					ivelReal[eje] += ACELERACION #if ivelReal[eje]
 					ivelReal[eje] = MAX_VEL if ivelReal[eje] > MAX_VEL
+					if ivelReal[eje] < 0
+						ivelReal[eje] += ACELERACION*2
+					end
 				elsif ivelReal[eje] > 0
 					ivelReal[eje] -= ACELERACION
 					ivelReal[eje] = 0 if ivelReal[eje] < 0
@@ -100,7 +106,6 @@ EventMachine::run do
 			end
 			
 			ivel[:x], ivel[:y] = modulo(ivelReal[:x], ivelReal[:y])
-			p ivel, ivelReal
 			
 			for eje,maxeje in [[:x,WIDTH],[:y,HEIGHT]]
 				ipos[eje] += ivel[eje]
