@@ -26,7 +26,6 @@ $pos = { player: [], pelota: { x: 60, y: 60 } }
 $vel = { player: [], pelota: { x: 0, y: 0 } }
 $apretada = []
 $njugadores = 0
-$timer = nil
 $clients = Hash.new # clients[connection] = pos
 
 def send_all data
@@ -146,12 +145,21 @@ def actualizar_posiciones
 end
 
 EventMachine::run do
+	timer = nil
+	
 	EventMachine::WebSocket.run(:host => "0.0.0.0", :port => PORT) do |connection|
 		cpos = { x: 20, y: 20 }
 		cvel = { x: 0, y: 0 }
 		capr = {}
 		
 		connection.onopen do |handshake| puts "Cliente conectado! :D"
+			timer = EventMachine::PeriodicTimer.new(REFRESH_TIME) do
+				actualizar_aceleraciones
+				actualizar_colisiones
+				actualizar_posiciones
+				send_all JSON.generate($pos)
+			end if $njugadores == 0
+			
 			$clients[connection] = $njugadores
 			$njugadores += 1
 			# TODO  no superponer a otro jugador del campo la posición inicial
@@ -175,16 +183,13 @@ EventMachine::run do
 			$vel[:player].delete_at i
 			$apretada.delete_at i
 			$njugadores -= 1
+			
+			timer.cancel if $njugadores == 0
 		end
 	end
 	
 	
-	$timer = EventMachine::PeriodicTimer.new(REFRESH_TIME) do
-		actualizar_aceleraciones
-		actualizar_colisiones
-		actualizar_posiciones
-		send_all JSON.generate($pos)
-	end
+	
 	
 	puts "Iniciado servidor en el puerto #{PORT}"
 end
