@@ -4,8 +4,8 @@ require 'json'
 
 PORT = 8090
 REFRESH_TIME = 0.05
-ACELERACION = 0.8
-ACELERACION2 = 0.2
+ACELERACION = 0.7
+ACELERACION2 = 0.3
 MAX_VEL = 5
 WIDTH,HEIGHT = 600,300
 
@@ -18,7 +18,6 @@ end
 
 $pos = { player: [], pelota: { x: 60, y: 60 } }
 $vel = { player: [], pelota: { x: 0, y: 0 } }
-$velReal = { player: [], pelota: { x: 0, y: 0 } }
 $apretada = []
 $njugadores = 0
 $timer = nil
@@ -56,7 +55,6 @@ EventMachine::run do
 			end
 			$pos[:player].delete_at i
 			$vel[:player].delete_at i
-			$velReal[:player].delete_at i
 			$apretada.delete_at i
 			$njugadores -= 1
 		end
