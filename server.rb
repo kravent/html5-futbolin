@@ -22,8 +22,8 @@ def unitario_direccion pos1, pos2, dist = nil
 	{ x: (pos2[:x]-pos1[:x])/dist, y: (pos2[:y]-pos1[:y])/dist }
 end
 
-$pos = { player: [], pelota: { x: 60, y: 60 } }
-$vel = { player: [], pelota: { x: 0, y: 0 } }
+$pos = { player: [], pelota: { x: 60.0, y: 60.0 } }
+$vel = { player: [], pelota: { x: 0.0, y: 0.0 } }
 $apretada = []
 $njugadores = 0
 $clients = Hash.new # clients[connection] = pos
@@ -90,16 +90,20 @@ def actualizar_aceleraciones
 	end
 end
 
-def colisionar_objetos o1pos, o1vel, o1radio, o2pos, o2vel, o2radio
+def colisionar_objetos o1pos, o1vel, o1radio, o2pos, o2vel, o2radio, isball=false
 	dist = distancia(o1pos, o2pos)
 	if dist <= o1radio + o2radio
 		u1 = unitario_direccion o2pos, o1pos, dist
 		u2 = unitario_direccion o1pos, o2pos, dist
 		modulo1 = Math.sqrt(o1vel[:x]**2+o1vel[:y]**2)
-		modulo2 = Math.sqrt(o2vel[:x]**2+o2vel[:y]**2)
+		modulo2 = Math.sqrt(o2vel[:x]**2+o2vel[:y]**2) if !isball
 		for eje in [:x, :y]
-			o1vel[eje] += u1[eje] * modulo2
-			o2vel[eje] += u2[eje] * modulo1
+			if isball
+				o2vel[eje] = u2[eje] * modulo1
+			else
+				o1vel[eje] += u1[eje] * modulo2
+				o2vel[eje] += u2[eje] * modulo1
+			end
 		end
 	end
 end
@@ -124,7 +128,7 @@ def actualizar_colisiones
 			
 			#Colisión con la pelota
 			get_pelota do |ppos, pvel|
-				colisionar_objetos j1pos, j1vel, RADIO_PLAYER, ppos, pvel, RADIO_PELOTA
+				colisionar_objetos j1pos, j1vel, RADIO_PLAYER, ppos, pvel, RADIO_PELOTA, true
 			end
 			
 			#Colisión con la pared
