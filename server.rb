@@ -16,20 +16,6 @@ def distancia obj1, obj2
 	Math.sqrt((obj1[:x]-obj2[:x])**2 + (obj1[:y]-obj2[:y])**2)
 end
 
-def modulo velx, vely
-	print "Modulo -> velx: ", velx, ", vely: ", vely, "\n"
-	if velx == 0 and vely == 0
-		return 0,0
-	elsif velx == 0 and vely != 0
-		return 0,vely
-	elsif vely == 0 and velx != 0
-		return velx,0
-	else
-		m = Math.sqrt(velx**2+vely**2)
-		return velx*(velx/m).abs, vely*(vely/m).abs
-	end
-end
-
 $pos = { player: [], pelota: { x: 60, y: 60 } }
 $vel = { player: [], pelota: { x: 0, y: 0 } }
 $velReal = { player: [], pelota: { x: 0, y: 0 } }
@@ -46,7 +32,6 @@ EventMachine::run do
 	EventMachine::WebSocket.run(:host => "0.0.0.0", :port => PORT) do |connection|
 		cpos = { x: 20, y: 20 }
 		cvel = { x: 0, y: 0 }
-		cvelReal = { x: 0, y: 0 }
 		capr = {}
 		
 		connection.onopen do |handshake| puts "Cliente conectado! :D"
@@ -55,11 +40,10 @@ EventMachine::run do
 			# TODO  no superponer a otro jugador del campo la posición inicial
 			$pos[:player] << cpos
 			$vel[:player] << cvel
-			$velReal[:player] << cvelReal
 			$apretada << capr
 		end
 		
-		connection.onmessage do |data| puts data
+		connection.onmessage do |data|
 			tecla,pressed = data.split
 			capr[tecla.to_i] = (pressed == '1')
 		end
@@ -82,42 +66,41 @@ EventMachine::run do
 	$timer = EventMachine::PeriodicTimer.new(REFRESH_TIME) do
 		
 		$njugadores.times do |i|
-			ipos, ivelReal, ivel, iapr = $pos[:player][i], $velReal[:player][i], $vel[:player][i], $apretada[i]
+			ipos, ivel, iapr = $pos[:player][i], $vel[:player][i], $apretada[i]
 			
 			for eje,t1,t2 in [[:x,37,39],[:y,38,40]]
 				if iapr[t1] and not iapr[t2]	# izquierda o arriba
-					if ivelReal[eje] < -MAX_VEL/2	# aceleración en movimiento
-						ivelReal[eje] -= ACELERACION2 #if ivelReal[eje]
-						ivelReal[eje] = -MAX_VEL if ivelReal[eje] < -MAX_VEL
-					elsif ivelReal[eje] >= -MAX_VEL/2 and ivelReal[eje] <= 0	# aceleración inicial
-						ivelReal[eje] -= ACELERACION #if ivelReal[eje]
-					elsif ivelReal[eje] > 0	# desacelerar (se quiere ir al sentido contrario)
-						ivelReal[eje] -= ACELERACION*2
+					if ivel[eje] < -MAX_VEL/2	# aceleración en movimiento
+						ivel[eje] -= ACELERACION2 #if ivel[eje]
+						ivel[eje] = -MAX_VEL if ivel[eje] < -MAX_VEL
+					elsif ivel[eje] >= -MAX_VEL/2 and ivel[eje] <= 0	# aceleración inicial
+						ivel[eje] -= ACELERACION #if ivel[eje]
+					elsif ivel[eje] > 0	# desacelerar (se quiere ir al sentido contrario)
+						ivel[eje] -= ACELERACION*2
 					end
 				elsif not iapr[t1] and iapr[t2]		# derecha o abajo
-					if ivelReal[eje] > MAX_VEL/2	# aceleración en movimiento
-						ivelReal[eje] += ACELERACION2 #if ivelReal[eje]
-						ivelReal[eje] = MAX_VEL if ivelReal[eje] > MAX_VEL
-					elsif ivelReal[eje] <= MAX_VEL/2 and ivelReal[eje] >= 0	# aceleración inicial
-						ivelReal[eje] += ACELERACION
-					elsif ivelReal[eje] < 0	# desacelerar (se quiere ir al sentido contrario)
-						ivelReal[eje] += ACELERACION*2
+					if ivel[eje] > MAX_VEL/2	# aceleración en movimiento
+						ivel[eje] += ACELERACION2 #if ivel[eje]
+						ivel[eje] = MAX_VEL if ivel[eje] > MAX_VEL
+					elsif ivel[eje] <= MAX_VEL/2 and ivel[eje] >= 0	# aceleración inicial
+						ivel[eje] += ACELERACION
+					elsif ivel[eje] < 0	# desacelerar (se quiere ir al sentido contrario)
+						ivel[eje] += ACELERACION*2
 					end
-				elsif ivelReal[eje] > 0		# no se va a ninguna dirección y se desacelera despacio
-					ivelReal[eje] -= ACELERACION2
-					ivelReal[eje] = 0 if ivelReal[eje] < 0
-				elsif ivelReal[eje] < 0
-					ivelReal[eje] += ACELERACION2
-					ivelReal[eje] = 0 if ivelReal[eje] > 0
+				elsif ivel[eje] > 0		# no se va a ninguna dirección y se desacelera despacio
+					ivel[eje] -= ACELERACION2
+					ivel[eje] = 0 if ivel[eje] < 0
+				elsif ivel[eje] < 0
+					ivel[eje] += ACELERACION2
+					ivel[eje] = 0 if ivel[eje] > 0
 				end
 			end
 			
-			ivel[:x], ivel[:y] = modulo(ivelReal[:x], ivelReal[:y])
-			
+			modulo = Math.sqrt(ivel[:x]**2+ivel[:y]**2)
 			for eje,maxeje in [[:x,WIDTH],[:y,HEIGHT]]
-				ipos[eje] += ivel[eje]
-				ipos[eje], ivelReal[eje] = RADIO_PLAYER, 0 if ipos[eje] < RADIO_PLAYER
-				ipos[eje], ivelReal[eje] = maxeje-RADIO_PLAYER, 0 if ipos[eje] > maxeje-RADIO_PLAYER
+				ipos[eje] += (ivel[:x] == 0 || ivel[:y] == 0) ? ivel[eje] : ivel[eje]*(ivel[eje]/modulo).abs
+				ipos[eje], ivel[eje] = RADIO_PLAYER, 0 if ipos[eje] < RADIO_PLAYER
+				ipos[eje], ivel[eje] = maxeje-RADIO_PLAYER, 0 if ipos[eje] > maxeje-RADIO_PLAYER
 			end
 			
 		end
