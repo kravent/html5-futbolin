@@ -108,10 +108,10 @@ def colisionar_objetos o1pos, o1vel, o1radio, o2pos, o2vel, o2radio, isball=fals
 	end
 end
 
-def colisionar_pared ipos, ivel, radio
+def colisionar_pared ipos, ivel, radio, isball = false
 	for eje,maxeje in [[:x,WIDTH],[:y,HEIGHT]]
-		ivel[eje] = -ivel[eje] if ipos[eje] <= RADIO_PLAYER and ivel[eje] < 0
-		ivel[eje] = -ivel[eje] if ipos[eje] >= maxeje-RADIO_PLAYER and ivel[eje] > 0
+		ipos[eje],ivel[eje] = radio,(isball ? -ivel[eje] : 0) if ipos[eje] <= radio and ivel[eje] < 0
+		ivel[eje],ivel[eje] = maxeje-radio,(isball ? -ivel[eje] : 0) if ipos[eje] >= maxeje-radio and ivel[eje] > 0
 	end
 end
 
@@ -136,7 +136,7 @@ def actualizar_colisiones
 		end
 	end
 	
-	get_pelota {|ipos, ivel| colisionar_pared ipos, ivel, RADIO_PELOTA }
+	get_pelota {|ipos, ivel| colisionar_pared ipos, ivel, RADIO_PELOTA, true }
 end
 
 def actualizar_posiciones
