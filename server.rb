@@ -6,14 +6,20 @@ PORT = 8090
 REFRESH_TIME = 0.05
 ACELERACION = 0.7
 ACELERACION2 = 0.3
+DECELERACION_PELOTA = 0.05
 MAX_VEL = 5
 WIDTH,HEIGHT = 600,300
 
 RADIO_PLAYER = 10
 RADIO_PELOTA = 5
 
-def distancia obj1, obj2
-	Math.sqrt((obj1[:x]-obj2[:x])**2 + (obj1[:y]-obj2[:y])**2)
+def distancia pos1, pos2
+	Math.sqrt((pos1[:x]-pos2[:x])**2 + (pos1[:y]-pos2[:y])**2)
+end
+
+def unitario_direccion pos1, pos2, dist = nil
+	dist = distancia pos1, pos2 if dist.nil?
+	{ x: (pos2[:x]-pos1[:x])/dist, y: (pos2[:y]-pos1[:y])/dist }
 end
 
 $pos = { player: [], pelota: { x: 60, y: 60 } }
@@ -27,12 +33,29 @@ def send_all data
 	$clients.each_key { |ws| ws.send data }
 end
 
+def get_jugador i
+	yield $pos[:player][i], $vel[:player][i], $apretada[i]
+end
 
+def for_jugadores
+	$njugadores.times do |i|
+		yield $pos[:player][i], $vel[:player][i], $apretada[i]
+	end
+end
+
+def get_pelota
+	yield $pos[:pelota], $vel[:pelota]
+end
+
+def for_jugadores_pelota
+	$njugadores.times do |i|
+		yield $pos[:player][i], $vel[:player][i]
+	end
+	yield $pos[:pelota], $vel[:pelota]
+end
 
 def actualizar_aceleraciones
-	$njugadores.times do |i|
-		ipos, ivel, iapr = $pos[:player][i], $vel[:player][i], $apretada[i]
-		
+	for_jugadores do |_, ivel, iapr|
 		for eje,t1,t2 in [[:x,37,39],[:y,38,40]]
 			if iapr[t1] and not iapr[t2]	# izquierda o arriba
 				if ivel[eje] < -MAX_VEL/2	# aceleración en movimiento
@@ -61,23 +84,64 @@ def actualizar_aceleraciones
 			end
 		end
 	end
+	
+	get_pelota do |_, ivel|
+		ivel[:x] = ivel[:x].abs < DECELERACION_PELOTA ? 0 : ( ivel[:x] < 0 ? ivel[:x] + DECELERACION_PELOTA : ivel[:x] - DECELERACION_PELOTA )
+		ivel[:y] = ivel[:y].abs < DECELERACION_PELOTA ? 0 : ( ivel[:y] < 0 ? ivel[:y] + DECELERACION_PELOTA : ivel[:y] - DECELERACION_PELOTA )
+	end
+end
+
+def colisionar_objetos o1pos, o1vel, o1radio, o2pos, o2vel, o2radio
+	dist = distancia(o1pos, o2pos)
+	if dist <= o1radio + o2radio
+		u1 = unitario_direccion o2pos, o1pos, dist
+		u2 = unitario_direccion o1pos, o2pos, dist
+		modulo1 = Math.sqrt(o1vel[:x]**2+o1vel[:y]**2)
+		modulo2 = Math.sqrt(o2vel[:x]**2+o2vel[:y]**2)
+		for eje in [:x, :y]
+			o1vel[eje] += u1[eje] * modulo2
+			o2vel[eje] += u2[eje] * modulo1
+		end
+	end
+end
+
+def colisionar_pared ipos, ivel, radio
+	for eje,maxeje in [[:x,WIDTH],[:y,HEIGHT]]
+		ivel[eje] = -ivel[eje] if ipos[eje] <= RADIO_PLAYER and ivel[eje] < 0
+		ivel[eje] = -ivel[eje] if ipos[eje] >= maxeje-RADIO_PLAYER and ivel[eje] > 0
+	end
 end
 
 def actualizar_colisiones
-	# TODO
+	$njugadores.times do |i1|
+		get_jugador i1 do |j1pos, j1vel|
+			
+			# Colisión con otro jugador
+			(i1+1...$njugadores).each do |i2|
+				get_jugador i2 do |j2pos, j2vel|
+					colisionar_objetos j1pos, j1vel, RADIO_PLAYER, j2pos, j2vel, RADIO_PLAYER
+				end
+			end
+			
+			#Colisión con la pelota
+			get_pelota do |ppos, pvel|
+				colisionar_objetos j1pos, j1vel, RADIO_PLAYER, ppos, pvel, RADIO_PELOTA
+			end
+			
+			#Colisión con la pared
+			colisionar_pared j1pos, j1vel, RADIO_PLAYER
+		end
+	end
+	
+	get_pelota {|ipos, ivel| colisionar_pared ipos, ivel, RADIO_PELOTA }
 end
 
 def actualizar_posiciones
-	$njugadores.times do |i|
-		ipos, ivel, iapr = $pos[:player][i], $vel[:player][i], $apretada[i]
-		
+	for_jugadores_pelota do |ipos, ivel|
 		modulo = Math.sqrt(ivel[:x]**2+ivel[:y]**2)
 		for eje,maxeje in [[:x,WIDTH],[:y,HEIGHT]]
 			ipos[eje] += (ivel[:x] == 0 || ivel[:y] == 0) ? ivel[eje] : ivel[eje]*(ivel[eje]/modulo).abs
-			ipos[eje], ivel[eje] = RADIO_PLAYER, 0 if ipos[eje] < RADIO_PLAYER
-			ipos[eje], ivel[eje] = maxeje-RADIO_PLAYER, 0 if ipos[eje] > maxeje-RADIO_PLAYER
 		end
-		
 	end
 end
 
