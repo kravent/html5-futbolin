@@ -31,24 +31,27 @@ function show_panel(name) {
 
 // Conexiones con el servidor
 
+function on_keydown(evt){
+	lastKey=evt.keyCode;
+	if(!pressing[lastKey]){
+		pressing[evt.keyCode]=true;
+		ws.send(lastKey+' 1');
+	}
+}
+
+function on_keyup(evt){
+			pressing[evt.keyCode]=false;
+			ws.send(evt.keyCode+' 0');
+		}
+
 function begin_websocket(server) {
 	show_panel('connecting');
 	ws = new WebSocket('ws://'+server+'/room?width='+canvas.width+'&height='+canvas.height);
 
 	ws.onopen = function() {
 		show_panel('game');
-		document.addEventListener('keydown',function(evt){
-			lastKey=evt.keyCode;
-			if(!pressing[lastKey]){
-				pressing[evt.keyCode]=true;
-				ws.send(lastKey+' 1');
-			}
-		},false);
-
-		document.addEventListener('keyup',function(evt){
-			pressing[evt.keyCode]=false;
-			ws.send(evt.keyCode+' 0');
-		},false);
+		document.addEventListener('keydown', on_keydown);
+		document.addEventListener('keyup', on_keyup);
 	};
 	
 	ws.onmessage = function(msg){
@@ -61,6 +64,8 @@ function begin_websocket(server) {
 		show_panel('connect');
 		console.log(data);
 		ws = null;
+		document.removeEventListener('keydown', on_keydown);
+		document.removeEventListener('keyup', on_keyup);
 	};
 }
 
