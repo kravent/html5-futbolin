@@ -8,11 +8,25 @@
 
 	<body>
 		<h1>Futbolín</h1>
-
-		<p><canvas id="canvas" width="600" height="300" style="border:1px solid #000">
-		Canvas not supported by your browser.
-		</canvas></p>
-
+		
+		<div id="div_connect">
+			<form name="connect" action="#">
+				Servidor: <input name="server" type="text" value="localhost">
+				Puerto: <input name="port" type="text" value="8090">
+				<input type="submit" value="Conectar">
+			</form>
+		</div>
+		
+		<div id="div_connecting">
+			<h3>Conectando...</h3>
+		</div>
+		
+		<div id="div_game">
+			<p><canvas id="canvas" width="600" height="300" style="border:1px solid #000">
+			Canvas not supported by your browser.
+			</canvas></p>
+		</div>
+		
 		<script type="application/javascript" src="gameClient.js"></script>
 	</body>
 </html>
