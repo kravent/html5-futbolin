@@ -1,6 +1,4 @@
-'use strict';
 var canvas=document.getElementById('canvas');
-canvas.style.background='#000';
 var ctx=canvas.getContext('2d');
 
 var paneles = {
@@ -52,6 +50,7 @@ function begin_websocket(server) {
 		show_panel('game');
 		document.addEventListener('keydown', on_keydown);
 		document.addEventListener('keyup', on_keyup);
+		begin_paint();
 	};
 	
 	ws.onmessage = function(msg){
@@ -66,6 +65,7 @@ function begin_websocket(server) {
 		ws = null;
 		document.removeEventListener('keydown', on_keydown);
 		document.removeEventListener('keyup', on_keyup);
+		stop_paint();
 	};
 }
 
@@ -73,9 +73,10 @@ function begin_websocket(server) {
 
 // Funciones de dibujo
 
+canvas.style.background='#1A4300';
+
 function paint_clear() {
-	ctx.fillStyle = '#1A4300';
-	ctx.fillRect(0,0,canvas.width,canvas.height);
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 function paint_player(pos) {
@@ -96,17 +97,24 @@ function paint_pelota(pos, radio, color) {
 	ctx.stroke();
 }
 
+var stop_paint = false;
+
 function paint(){
     paint_clear();
 	for(var i in player)
 		paint_player(player[i]);
 	paint_pelota(pelota);
 	
-	requestAnimationFrame(paint);
+	if(!stop_paint) requestAnimationFrame(paint);
 }
 
 function begin_paint() {
+	stop_paint = false;
 	requestAnimationFrame(paint);
+}
+
+function stop_paint() {
+	stop_paint = true;
 }
 
 
@@ -123,6 +131,5 @@ function on_submit_connect() {
 // Inicializacion de componentes
 
 show_panel('connect');
-begin_paint();
 document.forms['connect'].onsubmit = on_submit_connect;
 
