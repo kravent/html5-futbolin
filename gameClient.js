@@ -100,7 +100,7 @@ function paint_pelota(pos, radio, color) {
 	ctx.stroke();
 }
 
-var stop_paint = false;
+var stop_paint_flag = false;
 
 function paint(){
     paint_clear();
@@ -108,16 +108,16 @@ function paint(){
 		paint_player(player[i]);
 	paint_pelota(pelota);
 	
-	if(!stop_paint) requestAnimationFrame(paint);
+	if(!stop_paint_flag) requestAnimationFrame(paint);
 }
 
 function begin_paint() {
-	stop_paint = false;
+	stop_paint_flag = false;
 	requestAnimationFrame(paint);
 }
 
 function stop_paint() {
-	stop_paint = true;
+	stop_paint_flag = true;
 }
 
 
