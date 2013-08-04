@@ -13,7 +13,10 @@ var radio_player = 10, radio_pelota = 5;
 var player = [];
 var pelota = { x: 0, y: 0 };
 
-window.requestAnimationFrame = requestAnimationFrame || mozRequestAnimationFrame || webkitmozRequestAnimationFrame;
+window.requestAnimationFrame = window.requestAnimationFrame || 
+                               window.mozRequestAnimationFrame || 
+                               window.webkitmozRequestAnimationFrame || 
+                               function( callback ){ window.setTimeout(callback, 1000 / 60); };
 var ws = null;
 
 
