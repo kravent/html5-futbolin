@@ -99,6 +99,7 @@ function parse_server_data(serverdata) {
 	if(serverdata.radio_pelota) radio_pelota = serverdata.radio_pelota;
 }
 
+
 // Funciones de dibujo
 
 canvas.style.background='#1A4300';
@@ -116,7 +117,7 @@ function paint_player(pos) {
 	ctx.stroke();
 }
 
-function paint_pelota(pos, radio, color) {
+function paint_pelota(pos) {
 	ctx.strokeStyle = '#000';
 	ctx.fillStyle = '#fff';
 	ctx.beginPath();
@@ -124,6 +125,9 @@ function paint_pelota(pos, radio, color) {
 	ctx.fill();
 	ctx.stroke();
 }
+
+
+// Control del redibujado
 
 var stop_paint_flag = false;
 
