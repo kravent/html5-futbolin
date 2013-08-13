@@ -55,7 +55,7 @@ end
 
 def actualizar_aceleraciones
 	for_jugadores do |_, ivel, iapr|
-		for eje,t1,t2 in [[:x,37,39],[:y,38,40]]
+		for eje,t1,t2 in [[:x,'l','r'],[:y,'u','d']]
 			if iapr[t1] and not iapr[t2]	# izquierda o arriba
 				if ivel[eje] < -MAX_VEL/2	# aceleración en movimiento
 					ivel[eje] -= ACELERACION2 #if ivel[eje]
@@ -183,7 +183,7 @@ EventMachine::run do
 		
 		connection.onmessage do |data|
 			tecla,pressed = data.split
-			capr[tecla.to_i] = (pressed == '1')
+			capr[tecla] = (pressed == '1')
 		end
 		
 		connection.onclose do

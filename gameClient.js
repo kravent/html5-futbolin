@@ -7,7 +7,20 @@ var paneles = {
 	game: document.getElementById('div_game')
 };
 
-var lastKey=null;
+var keydown_map = {
+	//32: 's 1', //espacio, chutar
+	37: 'l 1',
+	38: 'u 1',
+	39: 'r 1',
+	40: 'd 1'
+}
+var keyup_map = {
+	37: 'l 0',
+	38: 'u 0',
+	39: 'r 0',
+	40: 'd 0'
+}
+
 var pressing=[];
 var radio_player = 10, radio_pelota = 5;
 var player = [];
@@ -34,17 +47,18 @@ function show_panel(name) {
 // Conexiones con el servidor
 
 function on_keydown(evt){
-	lastKey=evt.keyCode;
-	if(!pressing[lastKey]){
+	if(keydown_map[evt.keyCode] && !pressing[evt.keyCode]){
 		pressing[evt.keyCode]=true;
-		ws.send(lastKey+' 1');
+		ws.send(keydown_map[evt.keyCode]);
 	}
 }
 
 function on_keyup(evt){
-			pressing[evt.keyCode]=false;
-			ws.send(evt.keyCode+' 0');
-		}
+	if(keyup_map[evt.keyCode] && pressing[evt.keyCode]){
+		pressing[evt.keyCode]=false;
+		ws.send(keyup_map[evt.keyCode]);
+	}
+}
 
 function begin_websocket(server) {
 	show_panel('connecting');
