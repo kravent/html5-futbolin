@@ -10,8 +10,8 @@ DECELERACION_PELOTA = 0.05
 MAX_VEL = 5
 WIDTH,HEIGHT = 800,400
 
-RADIO_PLAYER = 10
-RADIO_PELOTA = 5
+RADIO_PLAYER = 15
+RADIO_PELOTA = 9
 
 def distancia pos1, pos2
 	Math.sqrt((pos1[:x]-pos2[:x])**2 + (pos1[:y]-pos2[:y])**2)
@@ -160,7 +160,9 @@ EventMachine::run do
 			connection.send JSON.generate({
 				serverdata: {
 					map_width: WIDTH,
-					map_height: HEIGHT
+					map_height: HEIGHT,
+					radio_player: RADIO_PLAYER,
+					radio_pelota: RADIO_PELOTA
 				}
 			})
 			

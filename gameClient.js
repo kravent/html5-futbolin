@@ -95,6 +95,8 @@ function begin_websocket(server) {
 function parse_server_data(serverdata) {
 	if(serverdata.map_width) canvas.width = serverdata.map_width;
 	if(serverdata.map_height) canvas.height = serverdata.map_height;
+	if(serverdata.radio_player) radio_player = serverdata.radio_player;
+	if(serverdata.radio_pelota) radio_pelota = serverdata.radio_pelota;
 }
 
 // Funciones de dibujo
