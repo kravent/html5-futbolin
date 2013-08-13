@@ -8,7 +8,7 @@ ACELERACION = 0.7
 ACELERACION2 = 0.3
 DECELERACION_PELOTA = 0.05
 MAX_VEL = 5
-WIDTH,HEIGHT = 600,300
+WIDTH,HEIGHT = 800,400
 
 RADIO_PLAYER = 10
 RADIO_PELOTA = 5
@@ -156,13 +156,22 @@ EventMachine::run do
 		cvel = { x: 0, y: 0 }
 		capr = {}
 		
-		connection.onopen do |handshake| puts "Cliente conectado! :D"
-			timer = EventMachine::PeriodicTimer.new(REFRESH_TIME) do
-				actualizar_aceleraciones
-				actualizar_colisiones
-				actualizar_posiciones
-				send_all JSON.generate($pos)
-			end if $njugadores == 0
+		connection.onopen do |handshake|
+			connection.send JSON.generate({
+				serverdata: {
+					map_width: WIDTH,
+					map_height: HEIGHT
+				}
+			})
+			
+			if $njugadores == 0
+				timer = EventMachine::PeriodicTimer.new(REFRESH_TIME) do
+					actualizar_aceleraciones
+					actualizar_colisiones
+					actualizar_posiciones
+					send_all JSON.generate($pos)
+				end
+			end
 			
 			$clients[connection] = $njugadores
 			$njugadores += 1
@@ -177,7 +186,7 @@ EventMachine::run do
 			capr[tecla.to_i] = (pressed == '1')
 		end
 		
-		connection.onclose do puts "Se fue... T_T"
+		connection.onclose do
 			i = $clients[connection]
 			$clients.delete connection
 			for cl,icl in $clients

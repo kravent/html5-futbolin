@@ -12,6 +12,7 @@ var pressing=[];
 var radio_player = 10, radio_pelota = 5;
 var player = [];
 var pelota = { x: 0, y: 0 };
+var playerinfo = [];
 
 window.requestAnimationFrame = window.requestAnimationFrame || 
                                window.mozRequestAnimationFrame || 
@@ -47,7 +48,7 @@ function on_keyup(evt){
 
 function begin_websocket(server) {
 	show_panel('connecting');
-	ws = new WebSocket('ws://'+server+'/room?width='+canvas.width+'&height='+canvas.height);
+	ws = new WebSocket('ws://'+server+'/room');
 
 	ws.onopen = function() {
 		show_panel('game');
@@ -58,8 +59,10 @@ function begin_websocket(server) {
 	
 	ws.onmessage = function(msg){
 		var data = JSON.parse(msg.data);
-		player = data.player;
-		pelota = data.pelota;
+		if(data.serverdata) parse_server_data(data.serverdata)
+		if(data.playerinfo) playerinfo = data.playerinfo;
+		if(data.player) player = data.player;
+		if(data.pelota) pelota = data.pelota;
 	}
 	
 	ws.onclose = function(data){
@@ -73,6 +76,12 @@ function begin_websocket(server) {
 }
 
 
+// Datos sobre el juego establecidos por el servidor
+
+function parse_server_data(serverdata) {
+	if(serverdata.map_width) canvas.width = serverdata.map_width;
+	if(serverdata.map_height) canvas.height = serverdata.map_height;
+}
 
 // Funciones de dibujo
 
