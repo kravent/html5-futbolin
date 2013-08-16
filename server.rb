@@ -1,210 +1,239 @@
 #!/usr/bin/env ruby
 require 'em-websocket'
 require 'json'
+require 'socket'
 
 PORT = 8090
 REFRESH_TIME = 0.05
-ACELERACION = 0.7
-ACELERACION2 = 0.3
+ACELERACION_PLAYER = 1
+DECELARACION_PLAYER = 0.3
 DECELERACION_PELOTA = 0.05
-MAX_VEL = 5
-WIDTH,HEIGHT = 800,400
-
+MAX_VEL_PLAYER = 5
+MAX_VEL_PELOTA = 20
+BOARD_SIZE = { x: 800, y: 400 }
 RADIO_PLAYER = 15
 RADIO_PELOTA = 9
 
-def distancia pos1, pos2
+
+def distancia(pos1, pos2)
 	Math.sqrt((pos1[:x]-pos2[:x])**2 + (pos1[:y]-pos2[:y])**2)
 end
 
-def unitario_direccion pos1, pos2, dist = nil
+def unitario_direccion(pos1, pos2, dist = nil)
 	dist = distancia pos1, pos2 if dist.nil?
-	{ x: (pos2[:x]-pos1[:x])/dist, y: (pos2[:y]-pos1[:y])/dist }
+	[(pos2[:x]-pos1[:x])/dist, (pos2[:y]-pos1[:y])/dist]
 end
 
-$pos = { player: [], pelota: { x: 60.0, y: 60.0 } }
-$vel = { player: [], pelota: { x: 0.0, y: 0.0 } }
-$apretada = []
-$njugadores = 0
-$clients = Hash.new # clients[connection] = pos
-
-def send_all data
-	$clients.each_key { |ws| ws.send data }
+def vector2unitario(vx, vy)
+	return [0, 0, 0] if vx==0 and vy ==0
+	mod = Math.sqrt(vx**2 + vy**2)
+	[vx/mod, vy/mod, mod] # unitario_x, unitario_y, modulo
 end
 
-def get_jugador i
-	yield $pos[:player][i], $vel[:player][i], $apretada[i]
-end
-
-def for_jugadores
-	$njugadores.times do |i|
-		yield $pos[:player][i], $vel[:player][i], $apretada[i]
-	end
-end
-
-def get_pelota
-	yield $pos[:pelota], $vel[:pelota]
-end
-
-def for_jugadores_pelota
-	$njugadores.times do |i|
-		yield $pos[:player][i], $vel[:player][i]
-	end
-	yield $pos[:pelota], $vel[:pelota]
-end
-
-def actualizar_aceleraciones
-	for_jugadores do |_, ivel, iapr|
-		for eje,t1,t2 in [[:x,'l','r'],[:y,'u','d']]
-			if iapr[t1] and not iapr[t2]	# izquierda o arriba
-				if ivel[eje] < -MAX_VEL/2	# aceleración en movimiento
-					ivel[eje] -= ACELERACION2 #if ivel[eje]
-					ivel[eje] = -MAX_VEL if ivel[eje] < -MAX_VEL
-				elsif ivel[eje] >= -MAX_VEL/2 and ivel[eje] <= 0	# aceleración inicial
-					ivel[eje] -= ACELERACION #if ivel[eje]
-				elsif ivel[eje] > 0	# desacelerar (se quiere ir al sentido contrario)
-					ivel[eje] -= ACELERACION*2
-				end
-			elsif not iapr[t1] and iapr[t2]		# derecha o abajo
-				if ivel[eje] > MAX_VEL/2	# aceleración en movimiento
-					ivel[eje] += ACELERACION2 #if ivel[eje]
-					ivel[eje] = MAX_VEL if ivel[eje] > MAX_VEL
-				elsif ivel[eje] <= MAX_VEL/2 and ivel[eje] >= 0	# aceleración inicial
-					ivel[eje] += ACELERACION
-				elsif ivel[eje] < 0	# desacelerar (se quiere ir al sentido contrario)
-					ivel[eje] += ACELERACION*2
-				end
-			elsif ivel[eje] > 0		# no se va a ninguna dirección y se desacelera despacio
-				ivel[eje] -= ACELERACION2
-				ivel[eje] = 0 if ivel[eje] < 0
-			elsif ivel[eje] < 0
-				ivel[eje] += ACELERACION2
-				ivel[eje] = 0 if ivel[eje] > 0
-			end
-		end
+class Elemento
+	attr_reader :tipo, :radio, :acel_mod, :decel_mod, :vel_max, :pos, :vel, :acel, :ws
+	
+	def initialize(tipo, radio, acel_mod, decel_mod, vel_max, pos, ws=nil)
+		@tipo = tipo
+		@radio = radio
+		@acel_mod = acel_mod
+		@decel_mod = decel_mod
+		@vel_max = vel_max
+		
+		@pos = pos
+		@vel = { x:0, y:0, mod: 0 }
+		@acel = { x:0, y:0 }
+		
+		@ws = ws
 	end
 	
-	get_pelota do |_, ivel|
-		ivel[:x] = ivel[:x].abs < DECELERACION_PELOTA ? 0 : ( ivel[:x] < 0 ? ivel[:x] + DECELERACION_PELOTA : ivel[:x] - DECELERACION_PELOTA )
-		ivel[:y] = ivel[:y].abs < DECELERACION_PELOTA ? 0 : ( ivel[:y] < 0 ? ivel[:y] + DECELERACION_PELOTA : ivel[:y] - DECELERACION_PELOTA )
+	def vel_xy
+		[@vel[:x]*@vel[:mod], @vel[:y]*@vel[:mod]]
 	end
-end
-
-def colisionar_objetos o1pos, o1vel, o1radio, o2pos, o2vel, o2radio, isball=false
-	dist = distancia(o1pos, o2pos)
-	if dist <= o1radio + o2radio
-		u1 = unitario_direccion o2pos, o1pos, dist
-		u2 = unitario_direccion o1pos, o2pos, dist
-		modulo1 = Math.sqrt(o1vel[:x]**2+o1vel[:y]**2)
-		modulo2 = Math.sqrt(o2vel[:x]**2+o2vel[:y]**2) if !isball
-		for eje in [:x, :y]
-			if isball
-				o2vel[eje] = u2[eje] * modulo1
+	
+	def acelerar()
+		# Desaceleración debido al rozamiento
+		@vel[:mod] -= @decel_mod
+		@vel[:mod] = 0 if @vel[:mod] < 0
+		
+		if @acel[:x] != 0 or @acel[:y] != 0
+			# Calcula la cantidad de aceleración en cada eje
+			if @acel[:x] != 0 and @acel[:y] != 0
+				am = 0.7071067811865475*@acel_mod
 			else
-				o1vel[eje] += u1[eje] * modulo2
-				o2vel[eje] += u2[eje] * modulo1
-			end
-		end
-	end
-end
-
-def colisionar_pared ipos, ivel, radio, isball = false
-	for eje,maxeje in [[:x,WIDTH],[:y,HEIGHT]]
-		ipos[eje],ivel[eje] = radio,(isball ? -ivel[eje] : 0) if ipos[eje] <= radio and ivel[eje] < 0
-		ivel[eje],ivel[eje] = maxeje-radio,(isball ? -ivel[eje] : 0) if ipos[eje] >= maxeje-radio and ivel[eje] > 0
-	end
-end
-
-def actualizar_colisiones
-	$njugadores.times do |i1|
-		get_jugador i1 do |j1pos, j1vel|
-			
-			# Colisión con otro jugador
-			(i1+1...$njugadores).each do |i2|
-				get_jugador i2 do |j2pos, j2vel|
-					colisionar_objetos j1pos, j1vel, RADIO_PLAYER, j2pos, j2vel, RADIO_PLAYER
-				end
+				am = @acel_mod
 			end
 			
-			#Colisión con la pelota
-			get_pelota do |ppos, pvel|
-				colisionar_objetos j1pos, j1vel, RADIO_PLAYER, ppos, pvel, RADIO_PELOTA, true
-			end
+			# Calcula la nueva velocidad
+			ax,ay = am*@acel[:x],am*@acel[:y]
+			vx,vy = @vel[:x]*@vel[:mod]+ax,@vel[:y]*@vel[:mod]+ay
+			@vel[:x],@vel[:y],@vel[:mod] = vector2unitario(vx,vy)
 			
-			#Colisión con la pared
-			colisionar_pared j1pos, j1vel, RADIO_PLAYER
+			# Reduce la velocidad si excede el máximo
+			@vel[:mod] = @vel_max if @vel[:mod] > @vel_max
 		end
 	end
 	
-	get_pelota {|ipos, ivel| colisionar_pared ipos, ivel, RADIO_PELOTA, true }
-end
-
-def actualizar_posiciones
-	for_jugadores_pelota do |ipos, ivel|
-		modulo = Math.sqrt(ivel[:x]**2+ivel[:y]**2)
-		for eje,maxeje in [[:x,WIDTH],[:y,HEIGHT]]
-			ipos[eje] += (ivel[:x] == 0 || ivel[:y] == 0) ? ivel[eje] : ivel[eje]*(ivel[eje]/modulo).abs
+	def colisionar_con_objeto(obj)
+		dist = distancia(@pos, obj.pos)
+		if dist <= @radio + obj.radio
+			unitx,unity = unitario_direccion obj.pos, @pos, dist
+			mod,objmod = @vel[:mod],obj.vel[:mod]
+			@vel.update({x: unitx, y: unity, mod: objmod})
+			if @tipo != :pelota
+				obj.vel.update({x: -unitx, y: -unity, mod: mod})
+			end
+		end
+	end
+	
+	def colisionar_con_pared()
+		for eje in [:x, :y]
+			if @pos[eje] < radio
+				# Colisión con la pared inferior en el eje
+				@pos[eje] = @radio
+				@vel[eje] = @tipo == :player ? 0 : -@vel[eje]
+			elsif @pos[eje] > BOARD_SIZE[eje]-radio
+				# Colisión con la pared inferior en el eje
+				@pos[eje] = BOARD_SIZE[eje]-radio
+				@vel[eje] = @tipo == :player ? 0 : -@vel[eje]
+			end
+		end
+	end
+	
+	def mover()
+		# Mueve la posición del objeto conforme a su velocidad
+		for eje in [:x, :y]
+			@pos[eje] += @vel[eje] * @vel[:mod]
 		end
 	end
 end
+
+
+class Tablero
+	def initialize()
+		pelota = Elemento.new(:pelota, RADIO_PELOTA, 0, DECELERACION_PELOTA, MAX_VEL_PELOTA, 
+		                      { x: BOARD_SIZE[:x]/2, y: BOARD_SIZE[:y]/2 })
+		@njugadores = 0
+		@elementos = [pelota]
+		@posiciones = {pelota: pelota.pos, player: []}
+		@timer = nil
+	end
+	
+	def acelerar()
+		for elemento in @elementos
+			elemento.acelerar()
+		end
+	end
+	
+	def colisiones()
+		for i in (0...@elementos.size-1)
+			for j in (i+1...@elementos.size)
+				# Como la pelota es el primer elemento sólo será cogida por el índice i
+				@elementos[i].colisionar_con_objeto(@elementos[j])
+			end
+		end
+		for elemento in @elementos
+			elemento.colisionar_con_pared()
+		end
+	end
+	
+	def mover()
+		for elemento in @elementos
+			elemento.mover()
+		end
+	end
+	
+	def update_all()
+		acelerar() # Cambia las velocidades según la aceleración
+		colisiones() # Recalcula velocidades para rebotar en las colisiones
+		mover() # Calcula las nuevas posiciones según las velocidades de los objetos
+		
+		# Envia las nuevas posiciones a los clientes
+		msg = JSON.generate(@posiciones)
+		for e in @elementos
+			e.ws.send(msg) if e.ws
+		end
+	end
+	
+	def add_client(cl)
+		# Activa la actualización de movimientos si es el primer cliente
+		@timer = EventMachine::PeriodicTimer.new(REFRESH_TIME){ update_all() } if @njugadores == 0
+		
+		# Añade el cliente en las estructuras
+		@njugadores += 1
+		@elementos << cl
+		@posiciones[:player] << cl.pos
+	end
+	
+	def delete_client(cl)
+		# Borra el cliente de las estructuras
+		i = @elementos.index{|e| e.object_id == cl.object_id }
+		@elementos.delete_at(i)
+		@posiciones[:player].delete_at(i-1)
+		@njugadores -= 1
+		
+		# Si es el último cliente desactiva las actualizaciones de movimientos
+		@timer.cancel rescue nil if @njugadores == 0
+	end
+end
+
+
+
+
+
+TABLERO = Tablero.new
+KEYS_ACEL = {
+	'u' => [:y, -1],
+	'd' => [:y, 1],
+	'l' => [:x, -1],
+	'r' => [:x, 1]
+}
 
 EventMachine::run do
-	timer = nil
-	
 	EventMachine::WebSocket.run(:host => "0.0.0.0", :port => PORT) do |connection|
-		cpos = { x: 20, y: 20 }
-		cvel = { x: 0, y: 0 }
-		capr = {}
+		cliente = nil
+		keys = {}
 		
 		connection.onopen do |handshake|
+			# Enviar al cliente datos para dibujar el campo
 			connection.send JSON.generate({
 				serverdata: {
-					map_width: WIDTH,
-					map_height: HEIGHT,
+					map_width: BOARD_SIZE[:x],
+					map_height: BOARD_SIZE[:y],
 					radio_player: RADIO_PLAYER,
 					radio_pelota: RADIO_PELOTA
 				}
 			})
 			
-			if $njugadores == 0
-				timer = EventMachine::PeriodicTimer.new(REFRESH_TIME) do
-					actualizar_aceleraciones
-					actualizar_colisiones
-					actualizar_posiciones
-					send_all JSON.generate($pos)
-				end
-			end
+			# Crear el jugador y añadirlo al campo
+			pos = {x: 100, y: 100}
+			cliente = Elemento.new(:player, RADIO_PLAYER, ACELERACION_PLAYER, 
+			                       DECELARACION_PLAYER, MAX_VEL_PLAYER, pos, connection)
+			TABLERO.add_client(cliente)
 			
-			$clients[connection] = $njugadores
-			$njugadores += 1
-			# TODO  no superponer a otro jugador del campo la posición inicial
-			$pos[:player] << cpos
-			$vel[:player] << cvel
-			$apretada << capr
 		end
 		
 		connection.onmessage do |data|
+			# Lee el dato recibido
 			tecla,pressed = data.split
-			capr[tecla] = (pressed == '1')
+			pressed = (pressed == '1')
+			
+			# Si cambia el estado de la tecla actualiza la aceleración del cliente
+			if !!keys[tecla] != pressed
+				keys[tecla] = pressed
+				if pressed
+					cliente.acel[KEYS_ACEL[tecla][0]] += KEYS_ACEL[tecla][1]
+				else
+					cliente.acel[KEYS_ACEL[tecla][0]] -= KEYS_ACEL[tecla][1]
+				end
+			end
 		end
 		
 		connection.onclose do
-			i = $clients[connection]
-			$clients.delete connection
-			for cl,icl in $clients
-				$clients[cl] = icl-1 if icl > i
-			end
-			$pos[:player].delete_at i
-			$vel[:player].delete_at i
-			$apretada.delete_at i
-			$njugadores -= 1
-			
-			timer.cancel if $njugadores == 0
+			# Borra el cliente del tablero
+			TABLERO.delete_client(cliente)
 		end
 	end
 	
-	
-	
-	
-	puts "Iniciado servidor en el puerto #{PORT}"
+	puts "Iniciado servidor en #{Socket.ip_address_list.detect{|intf| intf.ipv4_private?}.ip_address}:#{PORT}"
 end
