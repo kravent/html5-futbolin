@@ -13,7 +13,8 @@ MAX_VEL_PELOTA = 20
 BOARD_SIZE = { x: 800, y: 400 }
 RADIO_PLAYER = 15
 RADIO_PELOTA = 9
-
+RADIO_PLAYER_ALCANCE = 25
+VELOCIDAD_CHUTE = 10
 
 def distancia(pos1, pos2)
 	Math.sqrt((pos1[:x]-pos2[:x])**2 + (pos1[:y]-pos2[:y])**2)
@@ -32,6 +33,7 @@ end
 
 class Elemento
 	attr_reader :tipo, :radio, :acel_mod, :decel_mod, :vel_max, :pos, :vel, :acel, :ws
+	attr_accessor :chutar
 	
 	def initialize(tipo, radio, acel_mod, decel_mod, vel_max, pos, ws=nil)
 		@tipo = tipo
@@ -43,6 +45,7 @@ class Elemento
 		@pos = pos
 		@vel = { x:0, y:0, mod: 0 }
 		@acel = { x:0, y:0 }
+		@chutar = false
 		
 		@ws = ws
 	end
@@ -83,6 +86,10 @@ class Elemento
 			if @tipo != :pelota
 				obj.vel.update({x: -unitx, y: -unity, mod: mod})
 			end
+		end
+		if @tipo == :pelota and obj.chutar and dist <= @radio + RADIO_PLAYER_ALCANCE
+			@vel[:mod] = VELOCIDAD_CHUTE
+			obj.chutar = false
 		end
 	end
 	
@@ -222,7 +229,8 @@ EventMachine::run do
 					map_width: BOARD_SIZE[:x],
 					map_height: BOARD_SIZE[:y],
 					radio_player: RADIO_PLAYER,
-					radio_pelota: RADIO_PELOTA
+					radio_pelota: RADIO_PELOTA,
+					radio_player_alcance: RADIO_PLAYER_ALCANCE
 				}
 			})
 			
@@ -240,7 +248,9 @@ EventMachine::run do
 			pressed = (pressed == '1')
 			
 			# Si cambia el estado de la tecla actualiza la aceleración del cliente
-			if !!keys[tecla] != pressed
+			if tecla == 's'
+				cliente.chutar = true
+			elsif !!keys[tecla] != pressed
 				keys[tecla] = pressed
 				if pressed
 					cliente.acel[KEYS_ACEL[tecla][0]] += KEYS_ACEL[tecla][1]

@@ -8,7 +8,7 @@ var paneles = {
 };
 
 var keydown_map = {
-	//32: 's 1', //espacio, chutar
+	32: 's 1', //espacio, chutar
 	37: 'l 1',
 	38: 'u 1',
 	39: 'r 1',
@@ -22,11 +22,14 @@ var keyup_map = {
 }
 
 var pressing=[];
-var radio_player = 10, radio_pelota = 5;
+var radio_player = 10, radio_pelota = 5, radio_player_alcance = 15;
 var player = [];
 var pelota = { x: 0, y: 0 };
 var playerinfo = [];
 var playerpos = -1;
+
+var duracion_animacion_chute = 10; //frames
+var animacion_chute = -1;
 
 window.requestAnimationFrame = window.requestAnimationFrame || 
                                window.mozRequestAnimationFrame || 
@@ -49,14 +52,18 @@ function show_panel(name) {
 
 function on_keydown(evt){
 	if(keydown_map[evt.keyCode] && !pressing[evt.keyCode]){
-		pressing[evt.keyCode]=true;
+		pressing[evt.keyCode] = true;
 		ws.send(keydown_map[evt.keyCode]);
+		if(keydown_map[evt.keyCode] == 's 1') {
+			pressing[evt.keyCode] = false; // no se tiene en cuenta el evento de soltar para esta tecla
+			animacion_chute = 0;
+		}
 	}
 }
 
 function on_keyup(evt){
 	if(keyup_map[evt.keyCode] && pressing[evt.keyCode]){
-		pressing[evt.keyCode]=false;
+		pressing[evt.keyCode] = false;
 		ws.send(keyup_map[evt.keyCode]);
 	}
 }
@@ -64,21 +71,26 @@ function on_keyup(evt){
 function begin_websocket(server) {
 	show_panel('connecting');
 	ws = new WebSocket('ws://'+server+'/room');
-
+	var waiting_data = true; // Indica si sigue esperando para iniciar el juego
+	
 	ws.onopen = function() {
-		show_panel('game');
-		document.addEventListener('keydown', on_keydown);
-		document.addEventListener('keyup', on_keyup);
-		begin_paint();
+		
 	};
 	
 	ws.onmessage = function(msg){
 		var data = JSON.parse(msg.data);
 		if(data.serverdata) parse_server_data(data.serverdata)
 		if(data.playerinfo) playerinfo = data.playerinfo;
-		if(data.playerpos) playerpos = data.playerpos;
+		if(data.playerpos != undefined) playerpos = data.playerpos;
 		if(data.player) player = data.player;
 		if(data.pelota) pelota = data.pelota;
+		if(waiting_data && data.playerpos != undefined) {
+			waiting_data = false;
+			show_panel('game');
+			document.addEventListener('keydown', on_keydown);
+			document.addEventListener('keyup', on_keyup);
+			begin_paint();
+		}
 	}
 	
 	ws.onclose = function(data){
@@ -99,6 +111,7 @@ function parse_server_data(serverdata) {
 	if(serverdata.map_height) canvas.height = serverdata.map_height;
 	if(serverdata.radio_player) radio_player = serverdata.radio_player;
 	if(serverdata.radio_pelota) radio_pelota = serverdata.radio_pelota;
+	if(serverdata.radio_player_alcance) radio_player_alcance = serverdata.radio_player_alcance;
 }
 
 
@@ -128,13 +141,36 @@ function paint_pelota(pos) {
 	ctx.stroke();
 }
 
+function paint_self_player() {
+	var selfplayer = player[playerpos];
+	
+	// Marcar zona de chute propia
+	ctx.strokeStyle = '#848484';
+	ctx.beginPath();
+	ctx.arc(selfplayer.x,selfplayer.y,radio_player_alcance,0,Math.PI*2,true);
+	ctx.stroke();
+	
+	// Animación de chute
+	if(animacion_chute >= 0) {
+		var rad = (animacion_chute * (radio_player_alcance-radio_player) / duracion_animacion_chute) + radio_player;
+		ctx.strokeStyle = '#fff';
+		ctx.beginPath();
+		ctx.arc(selfplayer.x,selfplayer.y,rad,0,Math.PI*2,true);
+		ctx.stroke();
+		if(animacion_chute >= duracion_animacion_chute)
+			animacion_chute = -2;
+		animacion_chute += 1;
+	}
+}
+
 
 // Control del redibujado
 
 var stop_paint_flag = false;
 
 function paint(){
-    paint_clear();
+	paint_clear();
+	paint_self_player();
 	for(var i in player)
 		paint_player(player[i]);
 	paint_pelota(pelota);
