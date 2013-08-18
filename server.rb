@@ -116,7 +116,9 @@ class Tablero
 		@njugadores = 0
 		@elementos = [pelota]
 		@posiciones = {pelota: pelota.pos, player: []}
+		@playerinfo =[]
 		@timer = nil
+		@send_info = false
 	end
 	
 	def acelerar()
@@ -149,9 +151,20 @@ class Tablero
 		mover() # Calcula las nuevas posiciones según las velocidades de los objetos
 		
 		# Envia las nuevas posiciones a los clientes
-		msg = JSON.generate(@posiciones)
-		for e in @elementos
-			e.ws.send(msg) if e.ws
+		if @send_info
+			@msg = { pelota: @posiciones[:pelota], player: @posiciones[:player], playerinfo: @playerinfo, playerpos: 0 }
+			for e in @elementos
+				if e.ws
+					e.ws.send(JSON.generate(@msg))
+					@msg[:playerpos] += 1
+				end
+			end
+			@send_info = false
+		else
+			msg = JSON.generate(@posiciones)
+			for e in @elementos
+				e.ws.send(msg) if e.ws
+			end
 		end
 	end
 	
@@ -163,6 +176,9 @@ class Tablero
 		@njugadores += 1
 		@elementos << cl
 		@posiciones[:player] << cl.pos
+		
+		# Marca para enviar a todos los datos del nuevo cliente
+		@send_info = true
 	end
 	
 	def delete_client(cl)
@@ -172,8 +188,13 @@ class Tablero
 		@posiciones[:player].delete_at(i-1)
 		@njugadores -= 1
 		
-		# Si es el último cliente desactiva las actualizaciones de movimientos
-		@timer.cancel rescue nil if @njugadores == 0
+		if @njugadores == 0
+			# Si es el último cliente desactiva las actualizaciones de movimientos
+			@timer.cancel rescue nil
+			
+			# Marca para enviar a todos los datos sin este cliente
+			@send_info = true
+		end
 	end
 end
 

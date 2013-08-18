@@ -26,6 +26,7 @@ var radio_player = 10, radio_pelota = 5;
 var player = [];
 var pelota = { x: 0, y: 0 };
 var playerinfo = [];
+var playerpos = -1;
 
 window.requestAnimationFrame = window.requestAnimationFrame || 
                                window.mozRequestAnimationFrame || 
@@ -75,6 +76,7 @@ function begin_websocket(server) {
 		var data = JSON.parse(msg.data);
 		if(data.serverdata) parse_server_data(data.serverdata)
 		if(data.playerinfo) playerinfo = data.playerinfo;
+		if(data.playerpos) playerpos = data.playerpos;
 		if(data.player) player = data.player;
 		if(data.pelota) pelota = data.pelota;
 	}
