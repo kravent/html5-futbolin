@@ -79,7 +79,9 @@ class Elemento
 	
 	def colisionar_con_objeto(obj)
 		dist = distancia(@pos, obj.pos)
+		colision = false
 		if dist <= @radio + obj.radio
+			colision = true
 			unitx,unity = unitario_direccion obj.pos, @pos, dist
 			mod,objmod = @vel[:mod],obj.vel[:mod]
 			@vel.update({x: unitx, y: unity, mod: objmod})
@@ -87,9 +89,16 @@ class Elemento
 				obj.vel.update({x: -unitx, y: -unity, mod: mod})
 			end
 		end
-		if @tipo == :pelota and obj.chutar and dist <= @radio + RADIO_PLAYER_ALCANCE
-			@vel[:mod] = VELOCIDAD_CHUTE
+		if @tipo == :pelota and obj.chutar 
 			obj.chutar = false
+			if dist <= @radio + RADIO_PLAYER_ALCANCE
+				if not colision
+					unitx,unity = unitario_direccion obj.pos, @pos, dist
+					@vel.update({x: unitx, y: unity, mod: VELOCIDAD_CHUTE})
+				else
+					@vel[:mod] = VELOCIDAD_CHUTE
+				end
+			end
 		end
 	end
 	
