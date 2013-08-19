@@ -30,6 +30,7 @@ var playerpos = -1;
 
 var duracion_animacion_chute = 10; //frames
 var animacion_chute = -1;
+var porteria_size_x = 20, porteria_size_y = 20, campo_x = 300, campo_y = 600;
 
 window.requestAnimationFrame = window.requestAnimationFrame || 
                                window.mozRequestAnimationFrame || 
@@ -113,11 +114,15 @@ function begin_websocket(server) {
 // Datos sobre el juego establecidos por el servidor
 
 function parse_server_data(serverdata) {
-	if(serverdata.map_width) canvas.width = serverdata.map_width;
-	if(serverdata.map_height) canvas.height = serverdata.map_height;
+	if(serverdata.map_width) campo_x = serverdata.map_width;
+	if(serverdata.map_height) campo_y = serverdata.map_height;
 	if(serverdata.radio_player) radio_player = serverdata.radio_player;
 	if(serverdata.radio_pelota) radio_pelota = serverdata.radio_pelota;
 	if(serverdata.radio_player_alcance) radio_player_alcance = serverdata.radio_player_alcance;
+	if(serverdata.porteria_size_x) porteria_size_x = serverdata.porteria_size_x;
+	if(serverdata.porteria_size_y) porteria_size_y = serverdata.porteria_size_y;
+	canvas.width = campo_x + porteria_size_x*2;
+	canvas.height = campo_y;
 }
 
 
@@ -129,11 +134,20 @@ function paint_clear() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
+function paint_board() {
+	// Dibujar portería
+	ctx.beginPath();
+	ctx.fillStyle = '#999';
+	ctx.rect(0, (campo_y-porteria_size_y)/2, porteria_size_x, porteria_size_y);
+	ctx.rect(porteria_size_x+campo_x, (campo_y-porteria_size_y)/2, porteria_size_x, porteria_size_y);
+	ctx.fill();
+}
+
 function paint_player(pos) {
 	ctx.strokeStyle = '#000';
 	ctx.fillStyle = '#f00';
 	ctx.beginPath();
-	ctx.arc(pos.x,pos.y,radio_player,0,Math.PI*2,true);
+	ctx.arc(porteria_size_x+pos.x,pos.y,radio_player,0,Math.PI*2,true);
 	ctx.fill();
 	ctx.stroke();
 }
@@ -142,7 +156,7 @@ function paint_pelota(pos) {
 	ctx.strokeStyle = '#000';
 	ctx.fillStyle = '#fff';
 	ctx.beginPath();
-	ctx.arc(pos.x,pos.y,radio_pelota,0,Math.PI*2,true);
+	ctx.arc(porteria_size_x+pos.x,pos.y,radio_pelota,0,Math.PI*2,true);
 	ctx.fill();
 	ctx.stroke();
 }
@@ -153,7 +167,7 @@ function paint_self_player() {
 	// Marcar zona de chute propia
 	ctx.strokeStyle = '#848484';
 	ctx.beginPath();
-	ctx.arc(selfplayer.x,selfplayer.y,radio_player_alcance,0,Math.PI*2,true);
+	ctx.arc(porteria_size_x+selfplayer.x,selfplayer.y,radio_player_alcance,0,Math.PI*2,true);
 	ctx.stroke();
 	
 	// Animación de chute
@@ -161,7 +175,7 @@ function paint_self_player() {
 		var rad = (animacion_chute * (radio_player_alcance-radio_player) / duracion_animacion_chute) + radio_player;
 		ctx.strokeStyle = '#fff';
 		ctx.beginPath();
-		ctx.arc(selfplayer.x,selfplayer.y,rad,0,Math.PI*2,true);
+		ctx.arc(porteria_size_x+selfplayer.x,selfplayer.y,rad,0,Math.PI*2,true);
 		ctx.stroke();
 		if(animacion_chute >= duracion_animacion_chute)
 			animacion_chute = -2;
@@ -176,6 +190,7 @@ var stop_paint_flag = false;
 
 function paint(){
 	paint_clear();
+	paint_board();
 	paint_self_player();
 	for(var i in player)
 		paint_player(player[i]);

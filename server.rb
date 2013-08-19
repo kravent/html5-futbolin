@@ -11,6 +11,7 @@ DECELERACION_PELOTA = 0.05
 MAX_VEL_PLAYER = 5
 MAX_VEL_PELOTA = 20
 BOARD_SIZE = { x: 800, y: 400 }
+PORTERIA_SIZE = {x: 50, y: 100}
 RADIO_PLAYER = 15
 RADIO_PELOTA = 9
 RADIO_PLAYER_ALCANCE = 25
@@ -239,7 +240,9 @@ EventMachine::run do
 					map_height: BOARD_SIZE[:y],
 					radio_player: RADIO_PLAYER,
 					radio_pelota: RADIO_PELOTA,
-					radio_player_alcance: RADIO_PLAYER_ALCANCE
+					radio_player_alcance: RADIO_PLAYER_ALCANCE,
+					porteria_size_x: PORTERIA_SIZE[:x],
+					porteria_size_y: PORTERIA_SIZE[:y]
 				}
 			})
 			
