@@ -8,17 +8,17 @@ var paneles = {
 };
 
 var keydown_map = {
-	32: 's 1', //espacio, chutar
-	37: 'l 1',
-	38: 'u 1',
-	39: 'r 1',
-	40: 'd 1'
+	32: ['ks', 's'],
+	37: ['kd', 'l1'],
+	38: ['kd', 'u1'],
+	39: ['kd', 'r1'],
+	40: ['kd', 'd1']
 }
 var keyup_map = {
-	37: 'l 0',
-	38: 'u 0',
-	39: 'r 0',
-	40: 'd 0'
+	37: ['kd', 'l0'],
+	38: ['kd', 'u0'],
+	39: ['kd', 'r0'],
+	40: ['kd', 'd0']
 }
 
 var pressing=[];
@@ -51,20 +51,26 @@ function show_panel(name) {
 // Conexiones con el servidor
 
 function on_keydown(evt){
-	if(keydown_map[evt.keyCode] && !pressing[evt.keyCode]){
-		pressing[evt.keyCode] = true;
-		ws.send(keydown_map[evt.keyCode]);
-		if(keydown_map[evt.keyCode] == 's 1') {
-			pressing[evt.keyCode] = false; // no se tiene en cuenta el evento de soltar para esta tecla
+	var k = keydown_map[evt.keyCode];
+	if(k){
+		if(k[0] == 'kd'){
+			if(!!pressing[evt.keyCode]) return;
+			pressing[evt.keyCode] = true;
+		} else if(k[0] == 'ks') {
 			animacion_chute = 0;
 		}
+		ws.send(k.join(' '));
 	}
 }
 
 function on_keyup(evt){
-	if(keyup_map[evt.keyCode] && pressing[evt.keyCode]){
-		pressing[evt.keyCode] = false;
-		ws.send(keyup_map[evt.keyCode]);
+	var k = keyup_map[evt.keyCode];
+	if(k){
+		if(k[0] == 'kd'){
+			if(!pressing[evt.keyCode]) return;
+			pressing[evt.keyCode] = false;
+		}
+		ws.send(k.join(' '));
 	}
 }
 

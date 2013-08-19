@@ -253,18 +253,19 @@ EventMachine::run do
 		
 		connection.onmessage do |data|
 			# Lee el dato recibido
-			tecla,pressed = data.split
-			pressed = (pressed == '1')
-			
-			# Si cambia el estado de la tecla actualiza la aceleración del cliente
-			if tecla == 's'
+			tipo,data = data.split
+			if tipo == 'ks' # Tecla espaciadora
 				cliente.chutar = true
-			elsif !!keys[tecla] != pressed
-				keys[tecla] = pressed
-				if pressed
-					cliente.acel[KEYS_ACEL[tecla][0]] += KEYS_ACEL[tecla][1]
-				else
-					cliente.acel[KEYS_ACEL[tecla][0]] -= KEYS_ACEL[tecla][1]
+			elsif tipo == 'kd' # Tecla de dirección
+				tecla,pressed = data[0],(data[1] == '1')
+				# Si cambia el estado de la tecla actualiza la aceleración del cliente
+				if (!!keys[tecla]) != pressed
+					keys[tecla] = pressed
+					if pressed
+						cliente.acel[KEYS_ACEL[tecla][0]] += KEYS_ACEL[tecla][1]
+					else
+						cliente.acel[KEYS_ACEL[tecla][0]] -= KEYS_ACEL[tecla][1]
+					end
 				end
 			end
 		end
