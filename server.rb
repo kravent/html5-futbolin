@@ -112,11 +112,11 @@ class Elemento
 						min: { x: -PORTERIA_SIZE[:x]+@radio, y: SIZE_LATERAL2PORTERIA+@radio },
 						max: { x: BOARD_SIZE[:x]+PORTERIA_SIZE[:x]-@radio, y: SIZE_LATERAL2PORTERIA+PORTERIA_SIZE[:y]-@radio }
 					}
-					for eje in [:x, :y]
+					for eje in [:x, :y] # El rebote en la malla de la portería es menor (vel/10)
 						if @pos[eje] < area_permitida[:min][eje] # Colisión con la pared inferior en el eje
-							@pos[eje],@vel[eje] = area_permitida[:min][eje],-@vel[eje]
+							@pos[eje],@vel[eje] = area_permitida[:min][eje],-@vel[eje]/10
 						elsif @pos[eje] >  area_permitida[:max][eje] # Colisión con la pared inferior en el eje
-							@pos[eje],@vel[eje] = area_permitida[:max][eje],-@vel[eje]
+							@pos[eje],@vel[eje] = area_permitida[:max][eje],-@vel[eje]/10
 						end
 					end
 				else # O choca con los ejes de las porterías, o está en el centro del campo
