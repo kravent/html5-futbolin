@@ -270,57 +270,62 @@ KEYS_ACEL = {
 	'r' => [:x, 1]
 }
 
-EventMachine::run do
-	EventMachine::WebSocket.run(:host => "0.0.0.0", :port => PORT) do |connection|
-		cliente = nil
-		keys = {}
-		
-		connection.onopen do |handshake|
-			# Enviar al cliente datos para dibujar el campo
-			connection.send JSON.generate({
-				serverdata: {
-					map_width: BOARD_SIZE[:x],
-					map_height: BOARD_SIZE[:y],
-					radio_player: RADIO_PLAYER,
-					radio_pelota: RADIO_PELOTA,
-					radio_player_alcance: RADIO_PLAYER_ALCANCE,
-					porteria_size_x: PORTERIA_SIZE[:x],
-					porteria_size_y: PORTERIA_SIZE[:y]
-				}
-			})
+begin
+	EventMachine::run do
+		EventMachine::WebSocket.run(:host => "0.0.0.0", :port => PORT) do |connection|
+			cliente = nil
+			keys = {}
 			
-			# Crear el jugador y añadirlo al campo
-			pos = {x: 100, y: 100}
-			cliente = Elemento.new(:player, RADIO_PLAYER, ACELERACION_PLAYER, 
-			                       DECELARACION_PLAYER, MAX_VEL_PLAYER, pos, connection)
-			TABLERO.add_client(cliente)
+			connection.onopen do |handshake|
+				# Enviar al cliente datos para dibujar el campo
+				connection.send JSON.generate({
+					serverdata: {
+						map_width: BOARD_SIZE[:x],
+						map_height: BOARD_SIZE[:y],
+						radio_player: RADIO_PLAYER,
+						radio_pelota: RADIO_PELOTA,
+						radio_player_alcance: RADIO_PLAYER_ALCANCE,
+						porteria_size_x: PORTERIA_SIZE[:x],
+						porteria_size_y: PORTERIA_SIZE[:y]
+					}
+				})
+				
+				# Crear el jugador y añadirlo al campo
+				pos = {x: 100, y: 100}
+				cliente = Elemento.new(:player, RADIO_PLAYER, ACELERACION_PLAYER, 
+									DECELARACION_PLAYER, MAX_VEL_PLAYER, pos, connection)
+				TABLERO.add_client(cliente)
+				
+			end
 			
-		end
-		
-		connection.onmessage do |data|
-			# Lee el dato recibido
-			tipo,data = data.split
-			if tipo == 'ks' # Tecla espaciadora
-				cliente.chutar = true
-			elsif tipo == 'kd' # Tecla de dirección
-				tecla,pressed = data[0],(data[1] == '1')
-				# Si cambia el estado de la tecla actualiza la aceleración del cliente
-				if (!!keys[tecla]) != pressed
-					keys[tecla] = pressed
-					if pressed
-						cliente.acel[KEYS_ACEL[tecla][0]] += KEYS_ACEL[tecla][1]
-					else
-						cliente.acel[KEYS_ACEL[tecla][0]] -= KEYS_ACEL[tecla][1]
+			connection.onmessage do |data|
+				# Lee el dato recibido
+				tipo,data = data.split
+				if tipo == 'ks' # Tecla espaciadora
+					cliente.chutar = true
+				elsif tipo == 'kd' # Tecla de dirección
+					tecla,pressed = data[0],(data[1] == '1')
+					# Si cambia el estado de la tecla actualiza la aceleración del cliente
+					if (!!keys[tecla]) != pressed
+						keys[tecla] = pressed
+						if pressed
+							cliente.acel[KEYS_ACEL[tecla][0]] += KEYS_ACEL[tecla][1]
+						else
+							cliente.acel[KEYS_ACEL[tecla][0]] -= KEYS_ACEL[tecla][1]
+						end
 					end
 				end
 			end
+			
+			connection.onclose do
+				# Borra el cliente del tablero
+				TABLERO.delete_client(cliente)
+			end
 		end
 		
-		connection.onclose do
-			# Borra el cliente del tablero
-			TABLERO.delete_client(cliente)
-		end
+		puts "Iniciado servidor en #{Socket.ip_address_list.detect{|intf| intf.ipv4_private?}.ip_address}:#{PORT}"
 	end
-	
-	puts "Iniciado servidor en #{Socket.ip_address_list.detect{|intf| intf.ipv4_private?}.ip_address}:#{PORT}"
+rescue Interrupt
+	puts
+	puts "Servidor cerrado"
 end
