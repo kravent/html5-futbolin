@@ -135,6 +135,27 @@ function paint_clear() {
 }
 
 function paint_board() {
+	// Dibujar lineas del campo
+	ctx.strokeStyle = '#fff';
+	ctx.lineWidth = 5;
+	
+	ctx.beginPath();
+	ctx.rect(porteria_size_x+2, 0+2, campo_x-4, campo_y-4);
+	ctx.stroke();
+	
+	ctx.beginPath();
+	ctx.moveTo(porteria_size_x+campo_x/2, 0);
+	ctx.lineTo(porteria_size_x+campo_x/2, campo_y);
+	ctx.stroke();
+	
+	ctx.beginPath();
+	ctx.arc(porteria_size_x+campo_x/2, campo_y/2, campo_y/4, 0, Math.PI*2);
+	ctx.stroke();
+	
+	ctx.beginPath();
+	ctx.arc(porteria_size_x+campo_x/2, campo_y/2, 4, 0, Math.PI*2);
+	ctx.stroke();
+	
 	// Dibujar portería
 	ctx.beginPath();
 	ctx.fillStyle = '#999';
@@ -145,6 +166,7 @@ function paint_board() {
 
 function paint_player(pos) {
 	ctx.strokeStyle = '#000';
+	ctx.lineWidth = 2;
 	ctx.fillStyle = '#f00';
 	ctx.beginPath();
 	ctx.arc(porteria_size_x+pos.x,pos.y,radio_player,0,Math.PI*2,true);
@@ -154,6 +176,7 @@ function paint_player(pos) {
 
 function paint_pelota(pos) {
 	ctx.strokeStyle = '#000';
+	ctx.lineWidth = 2;
 	ctx.fillStyle = '#fff';
 	ctx.beginPath();
 	ctx.arc(porteria_size_x+pos.x,pos.y,radio_pelota,0,Math.PI*2,true);
@@ -166,6 +189,7 @@ function paint_self_player() {
 	
 	// Marcar zona de chute propia
 	ctx.strokeStyle = '#848484';
+	ctx.lineWidth = 1;
 	ctx.beginPath();
 	ctx.arc(porteria_size_x+selfplayer.x,selfplayer.y,radio_player_alcance,0,Math.PI*2,true);
 	ctx.stroke();
