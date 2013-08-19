@@ -90,6 +90,9 @@ class Elemento
 			if @tipo != :pelota
 				obj.vel.update({x: -unitx, y: -unity, mod: mod})
 			end
+			if obj.tipo == :poste
+				@vel[:mod] = mod # Si chocas contra un poste fijo rebotas con tu propia velocidad
+			end
 		end
 		if @tipo == :pelota and obj.chutar 
 			obj.chutar = false
@@ -256,10 +259,10 @@ end
 
 
 BORDE_PORTERIA = {
-	ul: Elemento.new(:pelota, 0, 0, 0, 0, { x: 0, y: SIZE_LATERAL2PORTERIA }),
-	ur: Elemento.new(:pelota, 0, 0, 0, 0, { x: BOARD_SIZE[:x], y: SIZE_LATERAL2PORTERIA }),
-	dl: Elemento.new(:pelota, 0, 0, 0, 0, { x: 0, y: SIZE_LATERAL2PORTERIA+PORTERIA_SIZE[:y] }),
-	dr: Elemento.new(:pelota, 0, 0, 0, 0, { x: BOARD_SIZE[:x], y: SIZE_LATERAL2PORTERIA+PORTERIA_SIZE[:y] })
+	ul: Elemento.new(:poste, 0, 0, 0, 0, { x: 0, y: SIZE_LATERAL2PORTERIA }),
+	ur: Elemento.new(:poste, 0, 0, 0, 0, { x: BOARD_SIZE[:x], y: SIZE_LATERAL2PORTERIA }),
+	dl: Elemento.new(:poste, 0, 0, 0, 0, { x: 0, y: SIZE_LATERAL2PORTERIA+PORTERIA_SIZE[:y] }),
+	dr: Elemento.new(:poste, 0, 0, 0, 0, { x: BOARD_SIZE[:x], y: SIZE_LATERAL2PORTERIA+PORTERIA_SIZE[:y] })
 }
 
 TABLERO = Tablero.new
