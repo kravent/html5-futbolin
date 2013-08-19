@@ -16,6 +16,7 @@ RADIO_PLAYER = 15
 RADIO_PELOTA = 9
 RADIO_PLAYER_ALCANCE = 25
 VELOCIDAD_CHUTE = 10
+SIZE_LATERAL2PORTERIA = (BOARD_SIZE[:y]-PORTERIA_SIZE[:y])/2.0
 
 def distancia(pos1, pos2)
 	Math.sqrt((pos1[:x]-pos2[:x])**2 + (pos1[:y]-pos2[:y])**2)
@@ -104,15 +105,51 @@ class Elemento
 	end
 	
 	def colisionar_con_pared()
-		for eje in [:x, :y]
-			if @pos[eje] < radio
-				# Colisión con la pared inferior en el eje
-				@pos[eje] = @radio
-				@vel[eje] = @tipo == :player ? 0 : -@vel[eje]
-			elsif @pos[eje] > BOARD_SIZE[eje]-radio
-				# Colisión con la pared inferior en el eje
-				@pos[eje] = BOARD_SIZE[eje]-radio
-				@vel[eje] = @tipo == :player ? 0 : -@vel[eje]
+		if @tipo == :pelota
+			if @pos[:y] >= SIZE_LATERAL2PORTERIA and @pos[:y] <= SIZE_LATERAL2PORTERIA + PORTERIA_SIZE[:y]
+				if @pos[:x] <= 0 or @pos[:x] >= BOARD_SIZE[:x] # Dentro de las porterías
+					area_permitida = {
+						min: { x: -PORTERIA_SIZE[:x]+@radio, y: SIZE_LATERAL2PORTERIA+@radio },
+						max: { x: BOARD_SIZE[:x]+PORTERIA_SIZE[:x]-@radio, y: SIZE_LATERAL2PORTERIA+PORTERIA_SIZE[:y]-@radio }
+					}
+					for eje in [:x, :y]
+						if @pos[eje] < area_permitida[:min][eje] # Colisión con la pared inferior en el eje
+							@pos[eje],@vel[eje] = area_permitida[:min][eje],-@vel[eje]
+						elsif @pos[eje] >  area_permitida[:max][eje] # Colisión con la pared inferior en el eje
+							@pos[eje],@vel[eje] = area_permitida[:max][eje],-@vel[eje]
+						end
+					end
+				else # O choca con los ejes de las porterías, o está en el centro del campo
+					if @pos[:x] < @radio
+						if @pos[:y] - SIZE_LATERAL2PORTERIA < @radio
+							colisionar_con_objeto(BORDE_PORTERIA[:ul])
+						elsif @pos[:y] - SIZE_LATERAL2PORTERIA > PORTERIA_SIZE[:y] - @radio
+							colisionar_con_objeto(BORDE_PORTERIA[:dl])
+						end
+					elsif @pos[:x] > BOARD_SIZE[:x] - @radio
+						if @pos[:y] - SIZE_LATERAL2PORTERIA < @radio
+							colisionar_con_objeto(BORDE_PORTERIA[:ur])
+						elsif @pos[:y] - SIZE_LATERAL2PORTERIA > PORTERIA_SIZE[:y] - @radio
+							colisionar_con_objeto(BORDE_PORTERIA[:dr])
+						end
+					end
+				end
+			else
+				for eje in [:x, :y]
+					if @pos[eje] < @radio # Colisión con la pared inferior en el eje
+						@pos[eje],@vel[eje] = @radio,-@vel[eje]
+					elsif @pos[eje] > BOARD_SIZE[eje]-radio # Colisión con la pared inferior en el eje
+						@pos[eje],@vel[eje] = BOARD_SIZE[eje]-radio,-@vel[eje]
+					end
+				end
+			end
+		else
+			for eje in [:x, :y]
+				if @pos[eje] < @radio # Colisión con la pared inferior en el eje
+					@pos[eje],@vel[eje] = @radio,0
+				elsif @pos[eje] > BOARD_SIZE[eje]-radio # Colisión con la pared inferior en el eje
+					@pos[eje],@vel[eje] = BOARD_SIZE[eje]-radio,0
+				end
 			end
 		end
 	end
@@ -218,6 +255,12 @@ end
 
 
 
+BORDE_PORTERIA = {
+	ul: Elemento.new(:pelota, 0, 0, 0, 0, { x: 0, y: SIZE_LATERAL2PORTERIA }),
+	ur: Elemento.new(:pelota, 0, 0, 0, 0, { x: BOARD_SIZE[:x], y: SIZE_LATERAL2PORTERIA }),
+	dl: Elemento.new(:pelota, 0, 0, 0, 0, { x: 0, y: SIZE_LATERAL2PORTERIA+PORTERIA_SIZE[:y] }),
+	dr: Elemento.new(:pelota, 0, 0, 0, 0, { x: BOARD_SIZE[:x], y: SIZE_LATERAL2PORTERIA+PORTERIA_SIZE[:y] })
+}
 
 TABLERO = Tablero.new
 KEYS_ACEL = {
