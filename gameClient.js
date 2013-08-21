@@ -27,10 +27,13 @@ var player = [];
 var pelota = { x: 0, y: 0 };
 var playerinfo = [];
 var playerpos = -1;
+var marcador = { red: 0, blue: 0 }, gol = undefined;
 
 var duracion_animacion_chute = 10; //frames
 var animacion_chute = -1;
 var porteria_size_x = 20, porteria_size_y = 20, campo_x = 300, campo_y = 600;
+var banda_size_x = 5, banda_size_y = 40;
+var color_red = 'red', color_blue = 'blue';
 
 window.requestAnimationFrame = window.requestAnimationFrame || 
                                window.mozRequestAnimationFrame || 
@@ -121,8 +124,13 @@ function parse_server_data(serverdata) {
 	if(serverdata.radio_player_alcance) radio_player_alcance = serverdata.radio_player_alcance;
 	if(serverdata.porteria_size_x) porteria_size_x = serverdata.porteria_size_x;
 	if(serverdata.porteria_size_y) porteria_size_y = serverdata.porteria_size_y;
-	canvas.width = campo_x + porteria_size_x*2;
-	canvas.height = campo_y;
+	if(serverdata.marcador) marcador = serverdata.marcador;
+	if(serverdata.gol) gol = serverdata.gol;
+	if(serverdata.reset) {
+		gol = undefined;
+	}
+	canvas.width = campo_x + porteria_size_x*2 + banda_size_x*2;
+	canvas.height = campo_y + banda_size_y*2;
 }
 
 
@@ -134,33 +142,67 @@ function paint_clear() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
+function paint_marcador() {
+	ctx.font = 'bold '+(banda_size_y-10)+'px Arial';
+	var x = canvas.width-15-ctx.measureText(marcador.red+' - '+marcador.blue).width, y = banda_size_y-10;
+	ctx.strokeStyle = '#fff';
+	ctx.lineWidth = 2;
+	ctx.fillStyle = color_red;
+	ctx.strokeText(marcador.red, x, y);
+	ctx.fillText(marcador.red, x, y);
+	x += ctx.measureText(marcador.red).width;
+	ctx.fillStyle = '#000';
+	ctx.strokeText(' - ', x, y);
+	ctx.fillText(' - ', x, y);
+	x += ctx.measureText(' - ').width;
+	ctx.fillStyle = color_blue;
+	ctx.strokeText(marcador.blue, x, y);
+	ctx.fillText(marcador.blue, x, y);
+}
+
+function paint_gol_message() {
+	if(gol) {
+		var txt = 'GOOOOOL!', px = 100;
+		ctx.font = 'bold '+px+'px Arial';
+		var x = (canvas.width-ctx.measureText(txt).width)/2;
+		var y = (canvas.height-px)/2+px;
+		if(gol == 'red') ctx.fillStyle = color_red;
+		else ctx.fillStyle = color_blue;
+		ctx.strokeStyle = '#000';
+		ctx.lineWidth = 4;
+		ctx.strokeText(txt, x, y);
+		ctx.fillText(txt, x, y);
+		
+	}
+}
+
 function paint_board() {
 	// Dibujar lineas del campo
 	ctx.strokeStyle = '#fff';
 	ctx.lineWidth = 5;
 	
 	ctx.beginPath();
-	ctx.rect(porteria_size_x+2, 0+2, campo_x-4, campo_y-4);
+	ctx.rect(2, 0+2, campo_x-4, campo_y-4);
 	ctx.stroke();
 	
 	ctx.beginPath();
-	ctx.moveTo(porteria_size_x+campo_x/2, 0);
-	ctx.lineTo(porteria_size_x+campo_x/2, campo_y);
+	ctx.moveTo(campo_x/2, 0);
+	ctx.lineTo(campo_x/2, campo_y);
 	ctx.stroke();
 	
 	ctx.beginPath();
-	ctx.arc(porteria_size_x+campo_x/2, campo_y/2, campo_y/4, 0, Math.PI*2);
+	ctx.arc(campo_x/2, campo_y/2, campo_y/4, 0, Math.PI*2);
 	ctx.stroke();
 	
 	ctx.beginPath();
-	ctx.arc(porteria_size_x+campo_x/2, campo_y/2, 4, 0, Math.PI*2);
+	ctx.arc(campo_x/2, campo_y/2, 4, 0, Math.PI*2);
 	ctx.stroke();
 	
 	// Dibujar portería
 	ctx.beginPath();
 	ctx.fillStyle = '#999';
-	ctx.rect(0, (campo_y-porteria_size_y)/2, porteria_size_x, porteria_size_y);
-	ctx.rect(porteria_size_x+campo_x, (campo_y-porteria_size_y)/2, porteria_size_x, porteria_size_y);
+	ctx.rect(-porteria_size_x, (campo_y-porteria_size_y)/2, porteria_size_x, porteria_size_y);
+	ctx.rect(campo_x, (campo_y-porteria_size_y)/2, porteria_size_x, porteria_size_y);
 	ctx.fill();
 }
 
@@ -169,7 +211,7 @@ function paint_player(pos) {
 	ctx.lineWidth = 2;
 	ctx.fillStyle = '#f00';
 	ctx.beginPath();
-	ctx.arc(porteria_size_x+pos.x,pos.y,radio_player,0,Math.PI*2,true);
+	ctx.arc(pos.x,pos.y,radio_player,0,Math.PI*2,true);
 	ctx.fill();
 	ctx.stroke();
 }
@@ -179,7 +221,7 @@ function paint_pelota(pos) {
 	ctx.lineWidth = 2;
 	ctx.fillStyle = '#fff';
 	ctx.beginPath();
-	ctx.arc(porteria_size_x+pos.x,pos.y,radio_pelota,0,Math.PI*2,true);
+	ctx.arc(pos.x,pos.y,radio_pelota,0,Math.PI*2,true);
 	ctx.fill();
 	ctx.stroke();
 }
@@ -191,7 +233,7 @@ function paint_self_player() {
 	ctx.strokeStyle = '#848484';
 	ctx.lineWidth = 1;
 	ctx.beginPath();
-	ctx.arc(porteria_size_x+selfplayer.x,selfplayer.y,radio_player_alcance,0,Math.PI*2,true);
+	ctx.arc(selfplayer.x,selfplayer.y,radio_player_alcance,0,Math.PI*2,true);
 	ctx.stroke();
 	
 	// Animación de chute
@@ -199,7 +241,7 @@ function paint_self_player() {
 		var rad = (animacion_chute * (radio_player_alcance-radio_player) / duracion_animacion_chute) + radio_player;
 		ctx.strokeStyle = '#fff';
 		ctx.beginPath();
-		ctx.arc(porteria_size_x+selfplayer.x,selfplayer.y,rad,0,Math.PI*2,true);
+		ctx.arc(selfplayer.x,selfplayer.y,rad,0,Math.PI*2,true);
 		ctx.stroke();
 		if(animacion_chute >= duracion_animacion_chute)
 			animacion_chute = -2;
@@ -214,11 +256,16 @@ var stop_paint_flag = false;
 
 function paint(){
 	paint_clear();
-	paint_board();
-	paint_self_player();
-	for(var i in player)
-		paint_player(player[i]);
-	paint_pelota(pelota);
+	paint_marcador();
+	ctx.save();
+		ctx.translate(banda_size_x+porteria_size_x, banda_size_y);
+		paint_board();
+		paint_self_player();
+		for(var i in player)
+			paint_player(player[i]);
+		paint_pelota(pelota);
+	ctx.restore();
+	paint_gol_message();
 	
 	if(!stop_paint_flag) requestAnimationFrame(paint);
 }

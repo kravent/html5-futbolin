@@ -17,6 +17,7 @@ RADIO_PELOTA = 9
 RADIO_PLAYER_ALCANCE = 25
 VELOCIDAD_CHUTE = 10
 SIZE_LATERAL2PORTERIA = (BOARD_SIZE[:y]-PORTERIA_SIZE[:y])/2.0
+RESET_TIME_TRAS_GOL = 30 # frames
 
 def distancia(pos1, pos2)
 	Math.sqrt((pos1[:x]-pos2[:x])**2 + (pos1[:y]-pos2[:y])**2)
@@ -167,15 +168,27 @@ end
 
 
 class Tablero
+	attr_reader :marcador
+	
 	def initialize()
-		pelota = Elemento.new(:pelota, RADIO_PELOTA, 0, DECELERACION_PELOTA, MAX_VEL_PELOTA, 
+		@pelota = Elemento.new(:pelota, RADIO_PELOTA, 0, DECELERACION_PELOTA, MAX_VEL_PELOTA, 
 		                      { x: BOARD_SIZE[:x]/2, y: BOARD_SIZE[:y]/2 })
 		@njugadores = 0
-		@elementos = [pelota]
-		@posiciones = {pelota: pelota.pos, player: []}
+		@elementos = [@pelota]
+		@posiciones = {pelota: @pelota.pos, player: []}
 		@playerinfo =[]
+		@marcador = { red: 0, blue: 0 }
 		@timer = nil
 		@send_info = false
+		@sendmarcador = false
+		@time_to_reset = -1
+	end
+	
+	def reset()
+		@golmarcado = false
+		@pelota.pos.update({ x: BOARD_SIZE[:x]/2, y: BOARD_SIZE[:y]/2 })
+		@pelota.vel[:mod] = 0
+		# TODO resetear posiciones de los jugadores
 	end
 	
 	def acelerar()
@@ -203,22 +216,48 @@ class Tablero
 	end
 	
 	def update_all()
+		msg = {}
+		
+		if @time_to_reset >= 0
+			if @time_to_reset == 0
+				reset()
+				msg[:serverdata] = { reset: true } # WARNING Podría ser sobreescrito por un serverdata posterior...
+			end
+			@time_to_reset -= 1
+		end
+		
 		acelerar() # Cambia las velocidades según la aceleración
 		colisiones() # Recalcula velocidades para rebotar en las colisiones
 		mover() # Calcula las nuevas posiciones según las velocidades de los objetos
 		
+		msg[:pelota] = @posiciones[:pelota]
+		msg[:player] = @posiciones[:player]
+		
+		if @time_to_reset < 0
+			if @pelota.pos[:x] < 0
+				@marcador[:blue] += 1
+				msg[:serverdata] = { marcador: @marcador, gol: 'blue' }
+				@time_to_reset = RESET_TIME_TRAS_GOL
+			elsif @pelota.pos[:x] > BOARD_SIZE[:x]
+				@marcador[:red] += 1
+				msg[:serverdata] = { marcador: @marcador, gol: 'red' }
+				@time_to_reset = RESET_TIME_TRAS_GOL
+			end
+		end
+		
 		# Envia las nuevas posiciones a los clientes
 		if @send_info
-			@msg = { pelota: @posiciones[:pelota], player: @posiciones[:player], playerinfo: @playerinfo, playerpos: 0 }
+			msg[:playerinfo] = @playerinfo
+			msg[:playerpos] = 0
 			for e in @elementos
 				if e.ws
-					e.ws.send(JSON.generate(@msg))
-					@msg[:playerpos] += 1
+					e.ws.send(JSON.generate(msg))
+					msg[:playerpos] += 1
 				end
 			end
 			@send_info = false
 		else
-			msg = JSON.generate(@posiciones)
+			msg = JSON.generate(msg)
 			for e in @elementos
 				e.ws.send(msg) if e.ws
 			end
@@ -289,7 +328,8 @@ begin
 						radio_pelota: RADIO_PELOTA,
 						radio_player_alcance: RADIO_PLAYER_ALCANCE,
 						porteria_size_x: PORTERIA_SIZE[:x],
-						porteria_size_y: PORTERIA_SIZE[:y]
+						porteria_size_y: PORTERIA_SIZE[:y],
+						marcador: TABLERO.marcador
 					}
 				})
 				
