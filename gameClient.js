@@ -146,7 +146,7 @@ function paint_marcador() {
 	ctx.font = 'bold '+(banda_size_y-10)+'px Arial';
 	var x = canvas.width-15-ctx.measureText(marcador.red+' - '+marcador.blue).width, y = banda_size_y-10;
 	ctx.strokeStyle = '#fff';
-	ctx.lineWidth = 2;
+	ctx.lineWidth = 4;
 	ctx.fillStyle = color_red;
 	ctx.strokeText(marcador.red, x, y);
 	ctx.fillText(marcador.red, x, y);
@@ -168,8 +168,8 @@ function paint_gol_message() {
 		var y = (canvas.height-px)/2+px;
 		if(gol == 'red') ctx.fillStyle = color_red;
 		else ctx.fillStyle = color_blue;
-		ctx.strokeStyle = '#000';
-		ctx.lineWidth = 4;
+		ctx.strokeStyle = '#fff';
+		ctx.lineWidth = 8;
 		ctx.strokeText(txt, x, y);
 		ctx.fillText(txt, x, y);
 		
