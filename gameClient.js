@@ -136,7 +136,7 @@ function parse_server_data(serverdata) {
 
 // Funciones de dibujo
 
-canvas.style.background='#1A4300';
+canvas.style.background='#569330';
 
 function paint_clear() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -176,6 +176,21 @@ function paint_gol_message() {
 	}
 }
 
+var radio_red_porteria = 6;
+function paint_porteria() {
+	// Esquina superior derecha de la portería situada en el punto (0,0)
+	ctx.beginPath();
+	ctx.strokeStyle = '#fff';
+	ctx.lineWidth = 2;
+	ctx.fillStyle = '#477729';
+	ctx.moveTo(0, 0);
+	ctx.arcTo(-porteria_size_x, 0, -porteria_size_x, porteria_size_y, radio_red_porteria);
+	ctx.arcTo(-porteria_size_x, porteria_size_y, 0, porteria_size_y, radio_red_porteria);
+	ctx.lineTo(0, porteria_size_y);
+	ctx.stroke();
+	ctx.fill();
+}
+
 function paint_board() {
 	// Dibujar lineas del campo
 	ctx.strokeStyle = '#fff';
@@ -198,12 +213,14 @@ function paint_board() {
 	ctx.arc(campo_x/2, campo_y/2, 4, 0, Math.PI*2);
 	ctx.stroke();
 	
-	// Dibujar portería
-	ctx.beginPath();
-	ctx.fillStyle = '#999';
-	ctx.rect(-porteria_size_x, (campo_y-porteria_size_y)/2, porteria_size_x, porteria_size_y);
-	ctx.rect(campo_x, (campo_y-porteria_size_y)/2, porteria_size_x, porteria_size_y);
-	ctx.fill();
+	// Dibujar porterías
+	ctx.save();
+		ctx.translate(0, (campo_y-porteria_size_y)/2);
+		paint_porteria();
+		ctx.translate(campo_x, 0);
+		ctx.scale(-1, 1);
+		paint_porteria();
+	ctx.restore();
 }
 
 function paint_player(pos) {
@@ -219,7 +236,7 @@ function paint_player(pos) {
 function paint_pelota(pos) {
 	ctx.strokeStyle = '#000';
 	ctx.lineWidth = 2;
-	ctx.fillStyle = '#fff';
+	ctx.fillStyle = '#E2E2E2';
 	ctx.beginPath();
 	ctx.arc(pos.x,pos.y,radio_pelota,0,Math.PI*2,true);
 	ctx.fill();
@@ -230,7 +247,7 @@ function paint_self_player() {
 	var selfplayer = player[playerpos];
 	
 	// Marcar zona de chute propia
-	ctx.strokeStyle = '#848484';
+	ctx.strokeStyle = '#454545';
 	ctx.lineWidth = 1;
 	ctx.beginPath();
 	ctx.arc(selfplayer.x,selfplayer.y,radio_player_alcance,0,Math.PI*2,true);
