@@ -25,7 +25,7 @@ end
 
 def unitario_direccion(pos1, pos2, dist = nil)
 	dist = distancia pos1, pos2 if dist.nil?
-	[(pos2[:x]-pos1[:x])/dist, (pos2[:y]-pos1[:y])/dist]
+	dist == 0 ? [1, 1] : [(pos2[:x]-pos1[:x])/dist, (pos2[:y]-pos1[:y])/dist]
 end
 
 def vector2unitario(vx, vy)
