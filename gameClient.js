@@ -223,10 +223,14 @@ function paint_board() {
 	ctx.restore();
 }
 
-function paint_player(pos) {
+function paint_player(pos, info) {
 	ctx.strokeStyle = '#000';
 	ctx.lineWidth = 2;
-	ctx.fillStyle = '#f00';
+	if(info.color == 'red') {
+		ctx.fillStyle = '#f00';
+	} else {
+		ctx.fillStyle = '#00f';
+	}
 	ctx.beginPath();
 	ctx.arc(pos.x,pos.y,radio_player,0,Math.PI*2,true);
 	ctx.fill();
@@ -279,7 +283,7 @@ function paint(){
 		paint_board();
 		paint_self_player();
 		for(var i in player)
-			paint_player(player[i]);
+			paint_player(player[i], playerinfo[i]);
 		paint_pelota(pelota);
 	ctx.restore();
 	paint_gol_message();

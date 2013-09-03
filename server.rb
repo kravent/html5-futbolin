@@ -34,11 +34,14 @@ def vector2unitario(vx, vy)
 	[vx/mod, vy/mod, mod] # unitario_x, unitario_y, modulo
 end
 
+
+
+
 class Elemento
-	attr_reader :tipo, :radio, :acel_mod, :decel_mod, :vel_max, :pos, :vel, :acel, :ws
+	attr_reader :tipo, :radio, :acel_mod, :decel_mod, :vel_max, :pos, :vel, :acel, :info, :ws
 	attr_accessor :chutar
 	
-	def initialize(tipo, radio, acel_mod, decel_mod, vel_max, pos, ws=nil)
+	def initialize(tipo, radio, acel_mod, decel_mod, vel_max, pos, color=nil, ws=nil)
 		@tipo = tipo
 		@radio = radio
 		@acel_mod = acel_mod
@@ -48,6 +51,7 @@ class Elemento
 		@pos = pos
 		@vel = { x:0, y:0, mod: 0 }
 		@acel = { x:0, y:0 }
+		@info = { color: color }
 		@chutar = false
 		
 		@ws = ws
@@ -167,8 +171,19 @@ class Elemento
 end
 
 
+
+POSICIONES_INICIALES = [{ x: BOARD_SIZE[:x]/2-100 , y: BOARD_SIZE[:y]/2 }]
+def posicion_inicial(color, n)
+	n %= POSICIONES_INICIALES.size
+	if color == :red
+		POSICIONES_INICIALES[n]
+	else
+		{ x: BOARD_SIZE[:x]-POSICIONES_INICIALES[n][:x], y: POSICIONES_INICIALES[n][:y] }
+	end
+end
+
 class Tablero
-	attr_reader :marcador
+	attr_reader :marcador, :contador_color_jugadores
 	
 	def initialize()
 		@pelota = Elemento.new(:pelota, RADIO_PELOTA, 0, DECELERACION_PELOTA, MAX_VEL_PELOTA, 
@@ -177,6 +192,7 @@ class Tablero
 		@elementos = [@pelota]
 		@posiciones = {pelota: @pelota.pos, player: []}
 		@playerinfo =[]
+		@contador_color_jugadores = { red: 0, blue: 0 }
 		@marcador = { red: 0, blue: 0 }
 		@timer = nil
 		@send_info = false
@@ -188,7 +204,14 @@ class Tablero
 		@golmarcado = false
 		@pelota.pos.update({ x: BOARD_SIZE[:x]/2, y: BOARD_SIZE[:y]/2 })
 		@pelota.vel[:mod] = 0
-		# TODO resetear posiciones de los jugadores
+		cuenta_colores = { red: 0, blue: 0 }
+		for elemento in @elementos
+			if elemento.tipo == :player
+				color = elemento.info[:color]
+				elemento.pos.update(posicion_inicial(color, cuenta_colores[color]))
+				cuenta_colores[color] += 1
+			end
+		end
 	end
 	
 	def acelerar()
@@ -272,6 +295,11 @@ class Tablero
 		@njugadores += 1
 		@elementos << cl
 		@posiciones[:player] << cl.pos
+		@playerinfo << cl.info
+		@contador_color_jugadores[cl.info[:color]] += 1
+		
+		# Lo coloca en el campo
+		cl.pos.update(posicion_inicial(cl.info[:color], 0))
 		
 		# Marca para enviar a todos los datos del nuevo cliente
 		@send_info = true
@@ -279,20 +307,24 @@ class Tablero
 	
 	def delete_client(cl)
 		# Borra el cliente de las estructuras
+		@contador_color_jugadores[cl.info[:color]] -= 1
 		i = @elementos.index{|e| e.object_id == cl.object_id }
 		@elementos.delete_at(i)
 		@posiciones[:player].delete_at(i-1)
+		@playerinfo.delete_at(i-1)
 		@njugadores -= 1
 		
 		if @njugadores == 0
 			# Si es el último cliente desactiva las actualizaciones de movimientos
 			@timer.cancel rescue nil
-			
+		else
 			# Marca para enviar a todos los datos sin este cliente
 			@send_info = true
 		end
 	end
 end
+
+
 
 
 
@@ -311,6 +343,8 @@ KEYS_ACEL = {
 	'l' => [:x, -1],
 	'r' => [:x, 1]
 }
+
+
 
 begin
 	EventMachine::run do
@@ -334,9 +368,9 @@ begin
 				})
 				
 				# Crear el jugador y añadirlo al campo
-				pos = {x: 100, y: 100}
+				color = (TABLERO.contador_color_jugadores[:red] <= TABLERO.contador_color_jugadores[:blue]) ? (:red) : (:blue)
 				cliente = Elemento.new(:player, RADIO_PLAYER, ACELERACION_PLAYER, 
-									DECELARACION_PLAYER, MAX_VEL_PLAYER, pos, connection)
+									DECELARACION_PLAYER, MAX_VEL_PLAYER, {x: 0, y: 0}, color, connection)
 				TABLERO.add_client(cliente)
 				
 			end
