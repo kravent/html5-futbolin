@@ -172,7 +172,15 @@ end
 
 
 
-POSICIONES_INICIALES = [{ x: BOARD_SIZE[:x]/2-100 , y: BOARD_SIZE[:y]/2 }]
+POSICIONES_INICIALES = [
+	{ x: BOARD_SIZE[:x]*3/8-25 , y: BOARD_SIZE[:y]*3/6 },
+	{ x: BOARD_SIZE[:x]*2/8 , y: BOARD_SIZE[:y]*1/6 },
+	{ x: BOARD_SIZE[:x]*2/8 , y: BOARD_SIZE[:y]*5/6 },
+	{ x: BOARD_SIZE[:x]*1/8 , y: BOARD_SIZE[:y]*2/6 },
+	{ x: BOARD_SIZE[:x]*1/8 , y: BOARD_SIZE[:y]*4/6 },
+	{ x: BOARD_SIZE[:x]*3/8+10 , y: BOARD_SIZE[:y]*1/6 },
+	{ x: BOARD_SIZE[:x]*3/8+10 , y: BOARD_SIZE[:y]*5/6 }
+]
 def posicion_inicial(color, n)
 	n %= POSICIONES_INICIALES.size
 	if color == :red
@@ -299,7 +307,7 @@ class Tablero
 		@contador_color_jugadores[cl.info[:color]] += 1
 		
 		# Lo coloca en el campo
-		cl.pos.update(posicion_inicial(cl.info[:color], 0))
+		cl.pos.update(posicion_inicial(cl.info[:color], @contador_color_jugadores[cl.info[:color]]-1))
 		
 		# Marca para enviar a todos los datos del nuevo cliente
 		@send_info = true
