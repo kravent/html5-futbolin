@@ -35,7 +35,7 @@ var player = [];
 var pelota = { x: 0, y: 0 };
 var playerinfo = [];
 var playerpos = -1;
-var marcador = { red: 0, blue: 0 }, gol = undefined;
+var marcador = { red: 0, blue: 0 }, gol = undefined, golanimation = 0;
 
 var duracion_animacion_chute = 10; //frames
 var animacion_chute = -1;
@@ -135,7 +135,10 @@ function parse_server_data(serverdata) {
 	if(serverdata.porteria_size_x) porteria_size_x = serverdata.porteria_size_x;
 	if(serverdata.porteria_size_y) porteria_size_y = serverdata.porteria_size_y;
 	if(serverdata.marcador) marcador = serverdata.marcador;
-	if(serverdata.gol) gol = serverdata.gol;
+	if(serverdata.gol) {
+		gol = serverdata.gol;
+		golanimation = 0;
+	}
 	if(serverdata.reset) {
 		gol = undefined;
 	}
@@ -154,35 +157,43 @@ function paint_clear() {
 
 function paint_marcador() {
 	ctx.font = 'bold '+(banda_size_y-10)+'px Arial';
-	var x = canvas.width-15-ctx.measureText(marcador.red+' - '+marcador.blue).width, y = banda_size_y-10;
+	ctx.textAlign = 'right';
+	ctx.textBaseline = 'middle';
+	var x = canvas.width-20;
+	var y = banda_size_y/2;
 	ctx.strokeStyle = '#fff';
 	ctx.lineWidth = 4;
-	ctx.fillStyle = color_red;
-	ctx.strokeText(marcador.red, x, y);
-	ctx.fillText(marcador.red, x, y);
-	x += ctx.measureText(marcador.red).width;
-	ctx.fillStyle = '#000';
-	ctx.strokeText(' - ', x, y);
-	ctx.fillText(' - ', x, y);
-	x += ctx.measureText(' - ').width;
+	
 	ctx.fillStyle = color_blue;
 	ctx.strokeText(marcador.blue, x, y);
 	ctx.fillText(marcador.blue, x, y);
+	x -= ctx.measureText(marcador.blue).width;
+	ctx.fillStyle = '#000';
+	ctx.strokeText(' - ', x, y);
+	ctx.fillText('- ', x, y);
+	x -= ctx.measureText(' - ').width;
+	ctx.fillStyle = color_red;
+	ctx.strokeText(marcador.red, x, y);
+	ctx.fillText(marcador.red, x, y);
 }
 
 function paint_gol_message() {
 	if(gol) {
-		var txt = 'GOOOOOL!', px = 100;
-		ctx.font = 'bold '+px+'px Arial';
-		var x = (canvas.width-ctx.measureText(txt).width)/2;
-		var y = (canvas.height-px)/2+px;
-		if(gol == 'red') ctx.fillStyle = color_red;
-		else ctx.fillStyle = color_blue;
-		ctx.strokeStyle = '#fff';
-		ctx.lineWidth = 8;
-		ctx.strokeText(txt, x, y);
-		ctx.fillText(txt, x, y);
-		
+		ctx.save();
+			ctx.translate(canvas.width/2, canvas.height/2)
+			ctx.scale(golanimation, golanimation);
+			golanimation += (1-golanimation)/10;
+			var txt = 'GOOOOOL!', px = 100;
+			ctx.font = 'bold '+px+'px Arial';
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'middle';
+			if(gol == 'red') ctx.fillStyle = color_red;
+			else ctx.fillStyle = color_blue;
+			ctx.strokeStyle = '#fff';
+			ctx.lineWidth = 8;
+			ctx.strokeText(txt, 0, 0);
+			ctx.fillText(txt, 0, 0);
+		ctx.restore();
 	}
 }
 
