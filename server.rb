@@ -217,6 +217,7 @@ class Tablero
 			if elemento.tipo == :player
 				color = elemento.info[:color]
 				elemento.pos.update(posicion_inicial(color, cuenta_colores[color]))
+				elemento.vel[:mod] = 0
 				cuenta_colores[color] += 1
 			end
 		end
