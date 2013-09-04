@@ -41,7 +41,7 @@ var duracion_animacion_chute = 10; //frames
 var animacion_chute = -1;
 var porteria_size_x = 20, porteria_size_y = 20, campo_x = 300, campo_y = 600;
 var banda_size_x = 5, banda_size_y = 40;
-var color_red = 'red', color_blue = 'blue';
+var color_red = '#F02F2F', color_blue = '#2063FF';
 
 window.requestAnimationFrame = window.requestAnimationFrame || 
                                window.mozRequestAnimationFrame || 
@@ -255,9 +255,9 @@ function paint_player(pos, info) {
 	ctx.strokeStyle = '#000';
 	ctx.lineWidth = 2;
 	if(info.color == 'red') {
-		ctx.fillStyle = '#f00';
+		ctx.fillStyle = color_red;
 	} else {
-		ctx.fillStyle = '#00f';
+		ctx.fillStyle = color_blue;
 	}
 	ctx.beginPath();
 	ctx.arc(pos.x,pos.y,radio_player,0,Math.PI*2,true);
