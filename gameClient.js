@@ -88,6 +88,11 @@ function on_keyup(evt){
 	}
 }
 
+var e_input_dorsal = document.getElementById('input_dorsal'), e_send_dorsal = document.getElementById('send_dorsal');
+function on_send_dorsal() {
+	ws.send('td ' + e_input_dorsal.value.substring(0, 2));
+}
+
 function begin_websocket(server) {
 	show_panel('connecting');
 	ws = new WebSocket('ws://'+server+'/room');
@@ -109,6 +114,7 @@ function begin_websocket(server) {
 			show_panel('game');
 			document.addEventListener('keydown', on_keydown);
 			document.addEventListener('keyup', on_keyup);
+			e_send_dorsal.addEventListener('click', on_send_dorsal);
 			begin_paint();
 		}
 	}
@@ -119,6 +125,7 @@ function begin_websocket(server) {
 		ws = null;
 		document.removeEventListener('keydown', on_keydown);
 		document.removeEventListener('keyup', on_keyup);
+		e_send_dorsal.removeEventListener('click', on_send_dorsal);
 		stop_paint();
 	};
 }
@@ -256,6 +263,14 @@ function paint_player(pos, info) {
 	ctx.arc(pos.x,pos.y,radio_player,0,Math.PI*2,true);
 	ctx.fill();
 	ctx.stroke();
+	
+	if(info.dorsal != undefined && info.dorsal != '') {
+		ctx.font = 'bold 16px Arial';
+		ctx.fillStyle = '#000';
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		ctx.fillText(info.dorsal, pos.x, pos.y);
+	}
 }
 
 function paint_pelota(pos) {

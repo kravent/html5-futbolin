@@ -51,7 +51,7 @@ class Elemento
 		@pos = pos
 		@vel = { x:0, y:0, mod: 0 }
 		@acel = { x:0, y:0 }
-		@info = { color: color }
+		@info = { color: color, dorsal: '' }
 		@chutar = false
 		
 		@ws = ws
@@ -331,6 +331,10 @@ class Tablero
 			@send_info = true
 		end
 	end
+	
+	def send_info_now()
+		@send_info = true
+	end
 end
 
 
@@ -400,6 +404,10 @@ begin
 							cliente.acel[KEYS_ACEL[tecla][0]] -= KEYS_ACEL[tecla][1]
 						end
 					end
+				elsif tipo == 'td' # Texto dorsal
+					data = '' if data.nil?
+					cliente.info[:dorsal] = data[0...2]
+					TABLERO.send_info_now()
 				end
 			end
 			
