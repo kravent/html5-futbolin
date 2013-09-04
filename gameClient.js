@@ -12,13 +12,21 @@ var keydown_map = {
 	37: ['kd', 'l1'],
 	38: ['kd', 'u1'],
 	39: ['kd', 'r1'],
-	40: ['kd', 'd1']
+	40: ['kd', 'd1'],
+	65: ['kd', 'l1'],
+	87: ['kd', 'u1'],
+	68: ['kd', 'r1'],
+	83: ['kd', 'd1']
 }
 var keyup_map = {
 	37: ['kd', 'l0'],
 	38: ['kd', 'u0'],
 	39: ['kd', 'r0'],
-	40: ['kd', 'd0']
+	40: ['kd', 'd0'],
+	65: ['kd', 'l0'],
+	87: ['kd', 'u0'],
+	68: ['kd', 'r0'],
+	83: ['kd', 'd0']
 }
 
 var pressing=[];
@@ -64,6 +72,7 @@ function on_keydown(evt){
 			animacion_chute = 0;
 		}
 		ws.send(k.join(' '));
+		evt.preventDefault();
 	}
 }
 
@@ -75,6 +84,7 @@ function on_keyup(evt){
 			pressing[evt.keyCode] = false;
 		}
 		ws.send(k.join(' '));
+		evt.preventDefault();
 	}
 }
 
