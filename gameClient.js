@@ -183,22 +183,36 @@ function paint_marcador() {
 	ctx.fillText(marcador.red, x, y);
 }
 
+var gol_canvas_red = document.createElement("canvas");
+var gol_canvas_blue = document.createElement("canvas");
+var gol_ctx_red = gol_canvas_red.getContext('2d');
+var gol_ctx_blue = gol_canvas_blue.getContext('2d');
+function paint_predraw_gol_message(gcanvas, gctx, gcolor) {
+	gcanvas.width = 600;
+	gcanvas.height = 110;
+	gctx.save();
+		gctx.translate(gcanvas.width/2, gcanvas.height/2)
+		var txt = 'GOOOOOL!', px = 100;
+		gctx.font = 'bold '+px+'px Arial';
+		gctx.textAlign = 'center';
+		gctx.textBaseline = 'middle';
+		gctx.fillStyle = gcolor;
+		gctx.strokeStyle = '#fff';
+		gctx.lineWidth = 8;
+		gctx.strokeText(txt, 0, 0);
+		gctx.fillText(txt, 0, 0);
+	ctx.restore();
+}
+paint_predraw_gol_message(gol_canvas_red, gol_ctx_red, color_red);
+paint_predraw_gol_message(gol_canvas_blue, gol_ctx_blue, color_blue);
 function paint_gol_message() {
 	if(gol) {
+		var gctx = (gol == 'red') ? gol_canvas_red : gol_canvas_blue;
 		ctx.save();
 			ctx.translate(canvas.width/2, canvas.height/2)
 			ctx.scale(golanimation, golanimation);
 			golanimation += (1-golanimation)/10;
-			var txt = 'GOOOOOL!', px = 100;
-			ctx.font = 'bold '+px+'px Arial';
-			ctx.textAlign = 'center';
-			ctx.textBaseline = 'middle';
-			if(gol == 'red') ctx.fillStyle = color_red;
-			else ctx.fillStyle = color_blue;
-			ctx.strokeStyle = '#fff';
-			ctx.lineWidth = 8;
-			ctx.strokeText(txt, 0, 0);
-			ctx.fillText(txt, 0, 0);
+			ctx.drawImage(gctx, -gctx.width/2, -gctx.height/2);
 		ctx.restore();
 	}
 }
