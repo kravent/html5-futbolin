@@ -207,12 +207,12 @@ paint_predraw_gol_message(gol_canvas_red, gol_ctx_red, color_red);
 paint_predraw_gol_message(gol_canvas_blue, gol_ctx_blue, color_blue);
 function paint_gol_message() {
 	if(gol) {
-		var gctx = (gol == 'red') ? gol_canvas_red : gol_canvas_blue;
+		var gcanvas = (gol == 'red') ? gol_canvas_red : gol_canvas_blue;
 		ctx.save();
 			ctx.translate(canvas.width/2, canvas.height/2)
 			ctx.scale(golanimation, golanimation);
 			golanimation += (1-golanimation)/10;
-			ctx.drawImage(gctx, -gctx.width/2, -gctx.height/2);
+			ctx.drawImage(gcanvas, -gcanvas.width/2, -gcanvas.height/2);
 		ctx.restore();
 	}
 }
