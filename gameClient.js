@@ -1,3 +1,4 @@
+var debug = false;
 var canvas=document.getElementById('canvas');
 var ctx=canvas.getContext('2d');
 
@@ -310,8 +311,11 @@ function paint_self_player() {
 // Control del redibujado
 
 var stop_paint_flag = false;
+var time_paint_frame_ini = 0, time_paint_frame_media = 0, time_paint_frame_nframe = 0;
 
 function paint(){
+	if(debug) time_paint_frame_ini = new Date();
+	
 	paint_clear();
 	paint_marcador();
 	ctx.save();
@@ -323,6 +327,19 @@ function paint(){
 		paint_pelota(pelota);
 	ctx.restore();
 	paint_gol_message();
+	
+	if(debug) {
+		time_paint_frame_media += (new Date()) - time_paint_frame_ini;
+		if(time_paint_frame_nframe > 0) {
+			time_paint_frame_media /= 2;
+			if(time_paint_frame_nframe >= 60) {
+				console.log("Timepo dibujo frame: "+(time_paint_frame_media)+"ms");
+				time_paint_frame_media = 0;
+				time_paint_frame_nframe = -1;
+			}
+		}
+		time_paint_frame_nframe += 1;
+	}
 	
 	if(!stop_paint_flag) requestAnimationFrame(paint);
 }
