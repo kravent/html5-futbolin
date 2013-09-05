@@ -42,7 +42,7 @@ var duracion_animacion_chute = 10; //frames
 var animacion_chute = -1;
 var porteria_size_x = 20, porteria_size_y = 20, campo_x = 300, campo_y = 600;
 var banda_size_x = 5, banda_size_y = 40;
-var color_red = '#F02F2F', color_blue = '#2063FF';
+var color_red = '#F02F2F', color_blue = '#2063FF', color_cesped = '#569330';
 
 window.requestAnimationFrame = window.requestAnimationFrame || 
                                window.mozRequestAnimationFrame || 
@@ -156,8 +156,6 @@ function parse_server_data(serverdata) {
 
 
 // Funciones de dibujo
-
-canvas.style.background='#569330';
 
 function paint_clear() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -320,7 +318,6 @@ function paint(){
 	paint_marcador();
 	ctx.save();
 		ctx.translate(banda_size_x+porteria_size_x, banda_size_y);
-		paint_board();
 		paint_self_player();
 		for(var i in player)
 			paint_player(player[i], playerinfo[i]);
@@ -345,6 +342,16 @@ function paint(){
 }
 
 function begin_paint() {
+	// Predibujar campo
+	canvas.style.background = color_cesped;
+	paint_clear();
+	ctx.save();
+		ctx.translate(banda_size_x+porteria_size_x, banda_size_y);
+		paint_board();
+	ctx.restore();
+	canvas.style.backgroundImage = 'url('+canvas.toDataURL()+')';
+	
+	// Empezar bucle depintado
 	stop_paint_flag = false;
 	requestAnimationFrame(paint);
 }
