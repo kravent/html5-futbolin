@@ -3,6 +3,7 @@ require 'em-websocket'
 require 'json'
 require 'socket'
 
+DEBUG = ARGV.include? 'debug'
 PORT = 8090
 REFRESH_TIME = 0.05
 ACELERACION_PLAYER = 1
@@ -248,6 +249,7 @@ class Tablero
 	end
 	
 	def update_all()
+		t_begin = Time.now if DEBUG
 		msg = {}
 		
 		if @time_to_reset >= 0
@@ -258,9 +260,12 @@ class Tablero
 			@time_to_reset -= 1
 		end
 		
+		t_colision = Time.now if DEBUG
+		
 		acelerar() # Cambia las velocidades según la aceleración
 		colisiones() # Recalcula velocidades para rebotar en las colisiones
 		mover() # Calcula las nuevas posiciones según las velocidades de los objetos
+		
 		
 		msg[:pelota] = @posiciones[:pelota]
 		msg[:player] = @posiciones[:player]
@@ -276,6 +281,8 @@ class Tablero
 				@time_to_reset = RESET_TIME_TRAS_GOL
 			end
 		end
+		
+		t_send = Time.now if DEBUG
 		
 		# Envia las nuevas posiciones a los clientes
 		if @send_info
@@ -293,6 +300,16 @@ class Tablero
 			for e in @elementos
 				e.ws.send(msg) if e.ws
 			end
+		end
+		
+		if DEBUG
+			t_end = Time.now
+			printf("Time frame: %.2fms (reset: %.2fms, colision: %.2fms, send: %.2fms)\n",
+			       (t_end-t_begin)*1000,
+			       (t_colision-t_begin)*1000,
+			       (t_send-t_colision)*1000,
+			       (t_end-t_send)*1000)
+			       
 		end
 	end
 	
