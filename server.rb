@@ -6,19 +6,19 @@ require 'socket'
 DEBUG = ARGV.include? 'debug'
 PORT = 8090
 REFRESH_TIME = 0.05
-ACELERACION_PLAYER = 1
-DECELARACION_PLAYER = 0.3
-DECELERACION_PELOTA = 0.05
-MAX_VEL_PLAYER = 5
-MAX_VEL_PELOTA = 20
+ACELERACION_PLAYER = 400
+DECELARACION_PLAYER = 120
+DECELERACION_PELOTA = 20
+MAX_VEL_PLAYER = 100
+MAX_VEL_PELOTA = 400
 BOARD_SIZE = { x: 800, y: 400 }
 PORTERIA_SIZE = {x: 50, y: 100}
 RADIO_PLAYER = 15
 RADIO_PELOTA = 9
 RADIO_PLAYER_ALCANCE = 25
-VELOCIDAD_CHUTE = 10
+VELOCIDAD_CHUTE = 200
 SIZE_LATERAL2PORTERIA = (BOARD_SIZE[:y]-PORTERIA_SIZE[:y])/2.0
-RESET_TIME_TRAS_GOL = 30 # frames
+RESET_TIME_TRAS_GOL = 2 # segundos
 
 def distancia(pos1, pos2)
 	Math.sqrt((pos1[:x]-pos2[:x])**2 + (pos1[:y]-pos2[:y])**2)
@@ -62,9 +62,9 @@ class Elemento
 		[@vel[:x]*@vel[:mod], @vel[:y]*@vel[:mod]]
 	end
 	
-	def acelerar()
+	def acelerar(el)
 		# Desaceleración debido al rozamiento
-		@vel[:mod] -= @decel_mod
+		@vel[:mod] -= @decel_mod * el
 		@vel[:mod] = 0 if @vel[:mod] < 0
 		
 		if @acel[:x] != 0 or @acel[:y] != 0
@@ -76,7 +76,7 @@ class Elemento
 			end
 			
 			# Calcula la nueva velocidad
-			ax,ay = am*@acel[:x],am*@acel[:y]
+			ax,ay = am * @acel[:x] * el, am * @acel[:y] * el
 			vx,vy = @vel[:x]*@vel[:mod]+ax,@vel[:y]*@vel[:mod]+ay
 			@vel[:x],@vel[:y],@vel[:mod] = vector2unitario(vx,vy)
 			
@@ -163,10 +163,10 @@ class Elemento
 		end
 	end
 	
-	def mover()
+	def mover(el)
 		# Mueve la posición del objeto conforme a su velocidad
 		for eje in [:x, :y]
-			@pos[eje] += @vel[eje] * @vel[:mod]
+			@pos[eje] += @vel[eje] * @vel[:mod] * el
 		end
 	end
 end
@@ -224,9 +224,9 @@ class Tablero
 		end
 	end
 	
-	def acelerar()
+	def acelerar(el)
 		for elemento in @elementos
-			elemento.acelerar()
+			elemento.acelerar(el)
 		end
 	end
 	
@@ -242,29 +242,29 @@ class Tablero
 		end
 	end
 	
-	def mover()
+	def mover(el)
 		for elemento in @elementos
-			elemento.mover()
+			elemento.mover(el)
 		end
 	end
 	
-	def update_all()
+	def animate(el) # el: Tiempo transcurrido desde el último frame
 		t_begin = Time.now if DEBUG
 		msg = {}
 		
-		if @time_to_reset >= 0
-			if @time_to_reset == 0
+		if not @time_to_reset < 0
+			@time_to_reset -= el
+			if @time_to_reset < 0
 				reset()
 				msg[:serverdata] = { reset: true } # WARNING Podría ser sobreescrito por un serverdata posterior...
 			end
-			@time_to_reset -= 1
 		end
 		
 		t_colision = Time.now if DEBUG
 		
-		acelerar() # Cambia las velocidades según la aceleración
+		acelerar(el) # Cambia las velocidades según la aceleración
 		colisiones() # Recalcula velocidades para rebotar en las colisiones
-		mover() # Calcula las nuevas posiciones según las velocidades de los objetos
+		mover(el) # Calcula las nuevas posiciones según las velocidades de los objetos
 		
 		
 		msg[:pelota] = @posiciones[:pelota]
@@ -311,6 +311,10 @@ class Tablero
 			       (t_end-t_send)*1000)
 			       
 		end
+	end
+	
+	def update_all()
+		animate(REFRESH_TIME)
 	end
 	
 	def add_client(cl)
