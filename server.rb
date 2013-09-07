@@ -438,7 +438,7 @@ begin
 			end
 		end
 		
-		puts "Iniciado servidor en #{Socket.ip_address_list.detect{|intf| intf.ipv4_private?}.ip_address}:#{PORT}"
+		puts "Iniciado servidor en #{Socket.ip_address_list.detect{|intf| intf.ipv4_private?}.ip_address rescue 'localhost'}:#{PORT}"
 	end
 rescue Interrupt
 	puts
