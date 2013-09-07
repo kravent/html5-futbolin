@@ -98,6 +98,8 @@ function begin_websocket(server) {
 	show_panel('connecting');
 	ws = new WebSocket('ws://'+server+'/room');
 	var waiting_data = true; // Indica si sigue esperando para iniciar el juego
+	animacion_chute = -1;
+	gol = undefined;
 	
 	ws.onopen = function() {
 		
